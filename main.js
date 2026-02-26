@@ -34,7 +34,6 @@ function switchView(viewName) {
   navRecommendBtn.classList.toggle('active', viewName === 'recommend');
 
   if (viewName === 'history') renderHistory(currentPage);
-  if (viewName === 'recommend') renderRecommendations();
 }
 
 navHistoryBtn.onclick = () => switchView('history');
@@ -50,12 +49,21 @@ function getBallColorClass(num) {
   return 'num-green';
 }
 
-function createLottoCard(data) {
+function formatCurrency(amount) {
+  if (!amount) return '0원';
+  return new Intl.NumberFormat('ko-KR').format(amount) + '원';
+}
+
+function formatCount(count) {
+  if (!count) return '0명';
+  return new Intl.NumberFormat('ko-KR').format(count) + '명';
+}
+
+function createLottoCard(data, showPrizes = false) {
   const element = document.createElement('div');
   element.classList.add('lotto-round');
-  element.innerHTML = `
-    <h3>${data.drwNo}회 당첨결과</h3>
-    <p>추첨일: ${data.drwNoDate}</p>
+  
+  let numbersHtml = `
     <div class="numbers">
       <span class="${getBallColorClass(data.drwtNo1)}">${data.drwtNo1}</span>
       <span class="${getBallColorClass(data.drwtNo2)}">${data.drwtNo2}</span>
@@ -66,6 +74,52 @@ function createLottoCard(data) {
       <span class="plus-sign">+</span>
       <span class="bonus ${getBallColorClass(data.bnusNo)}">${data.bnusNo}</span>
     </div>
+  `;
+
+  let prizeTableHtml = '';
+  let remarksHtml = '';
+
+  if (showPrizes && data.prizes && Array.isArray(data.prizes) && data.prizes.length >= 5) {
+    prizeTableHtml = `
+      <table class="prize-table">
+        <thead>
+          <tr>
+            <th>순위</th>
+            <th>당첨자 수</th>
+            <th>1게임당 당첨금액</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${data.prizes.map((p, i) => `
+            <tr>
+              <td>${i + 1}등</td>
+              <td class="winners-count">${formatCount(p.winners)}</td>
+              <td class="prize-amount">${formatCurrency(p.amount)}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+
+    if (data.methods) {
+        remarksHtml = `
+          <div class="total-info" style="flex-direction: column; align-items: flex-start; gap: 5px;">
+            <strong>[비고 - 1등 배출 방식]</strong>
+            <span>자동: ${data.methods.auto} / 수동: ${data.methods.manual} / 반자동: ${data.methods.semiAuto}</span>
+            <div style="width: 100%; display: flex; justify-content: space-between; margin-top: 5px;">
+                <span>총 판매액: ${formatCurrency(data.totSellamnt)}</span>
+            </div>
+          </div>
+        `;
+    }
+  }
+
+  element.innerHTML = `
+    <h3>${data.drwNo}회 당첨결과</h3>
+    <p>추첨일: ${data.drwNoDate}</p>
+    ${numbersHtml}
+    ${prizeTableHtml}
+    ${remarksHtml}
   `;
   return element;
 }
@@ -79,7 +133,7 @@ function renderHistory(page) {
   const numbersToRender = allLottoNumbers.slice(start, end);
 
   numbersToRender.forEach(data => {
-    lottoNumbersContainer.appendChild(createLottoCard(data));
+    lottoNumbersContainer.appendChild(createLottoCard(data, false));
   });
   
   updatePagination();
@@ -151,7 +205,7 @@ function handleSearch() {
 
   const data = allLottoNumbers.find(n => n.drwNo == selectedRound);
   if (data) {
-    searchResultContainer.appendChild(createLottoCard(data));
+    searchResultContainer.appendChild(createLottoCard(data, true));
   }
 }
 
@@ -192,7 +246,11 @@ generateBtn.onclick = renderRecommendations;
   try {
     loadingIndicator.style.display = 'block';
     
-    let response = await fetch(BASIC_DATA_URL);
+    let response = await fetch(DETAILED_DATA_URL);
+    if (!response.ok) {
+        response = await fetch(BASIC_DATA_URL);
+    }
+    
     if (!response.ok) throw new Error('데이터 파일을 불러올 수 없습니다.');
     
     allLottoNumbers = await response.json();
