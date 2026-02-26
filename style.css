@@ -34,16 +34,11 @@ h1 {
   cursor: pointer;
 }
 
-.search-container button:hover {
-  background-color: #166fe5;
-}
-
 #lotto-numbers-container {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 20px;
   margin-top: 20px;
-  visibility: hidden;
 }
 
 .lotto-round {
@@ -55,73 +50,59 @@ h1 {
 
 .lotto-round h3 {
   margin: 0 0 10px;
-  font-size: 1.2em;
   color: #1877f2;
-}
-
-.lotto-round p {
-  margin: 0 0 10px;
-  font-size: 0.9em;
-  color: #666;
 }
 
 .numbers {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  justify-content: space-around;
+  margin-top: 15px;
 }
 
 .numbers span {
   display: inline-block;
-  width: 35px;
-  height: 35px;
-  line-height: 35px;
+  width: 36px;
+  height: 36px;
+  line-height: 36px;
   text-align: center;
   border-radius: 50%;
   color: white;
   font-weight: bold;
-  font-size: 0.9em;
+  background-color: #fbc02d; /* 기본 노랑 (1-10) */
+  text-shadow: 0px 1px 2px rgba(0,0,0,0.3);
 }
 
-/* Different colors based on number range - common in lotto sites */
-.numbers span { background-color: #fbc02d; } /* 1-10 */
 .num-blue { background-color: #1976d2 !important; } /* 11-20 */
 .num-red { background-color: #d32f2f !important; } /* 21-30 */
 .num-gray { background-color: #757575 !important; } /* 31-40 */
 .num-green { background-color: #388e3c !important; } /* 41-45 */
 
-.numbers span.bonus {
-  background-color: #f44336;
-  position: relative;
+.bonus::before {
+  content: "+";
+  color: #333;
+  margin-right: 5px;
+  font-size: 1.2em;
 }
 
 #pagination-container {
   display: flex;
   justify-content: center;
-  flex-wrap: wrap;
   margin-top: 30px;
   gap: 5px;
-  visibility: hidden;
 }
 
 #pagination-container button {
-  background-color: #fff;
-  color: #1877f2;
+  padding: 8px 15px;
   border: 1px solid #1877f2;
-  padding: 8px 12px;
+  background: white;
+  color: #1877f2;
   border-radius: 5px;
   cursor: pointer;
-  transition: all 0.3s;
-}
-
-#pagination-container button:hover {
-  background-color: #e7f3ff;
 }
 
 #pagination-container button.active {
-  background-color: #1877f2;
+  background: #1877f2;
   color: white;
-  font-weight: bold;
 }
 
 #pagination-container button:disabled {
@@ -131,23 +112,7 @@ h1 {
 }
 
 #loading-indicator {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 1.5em;
-  color: #1877f2;
-}
-
-.error {
   text-align: center;
-  color: #d32f2f;
-  grid-column: 1 / -1;
-  padding: 20px;
-}
-
-@media (max-width: 600px) {
-  #lotto-numbers-container {
-    grid-template-columns: 1fr;
-  }
+  font-size: 1.5em;
+  margin: 20px;
 }
