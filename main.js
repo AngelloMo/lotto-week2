@@ -33,8 +33,8 @@ function switchView(viewName) {
   }
 }
 
-navHistoryBtn.onclick = () => switchView('history');
-navSearchBtn.onclick = () => switchView('search');
+if (navHistoryBtn) navHistoryBtn.onclick = () => switchView('history');
+if (navSearchBtn) navSearchBtn.onclick = () => switchView('search');
 
 // --- Helper Functions ---
 function getBallColorClass(num) {
@@ -46,10 +46,12 @@ function getBallColorClass(num) {
 }
 
 function formatCurrency(amount) {
+  if (!amount) return '0원';
   return new Intl.NumberFormat('ko-KR').format(amount) + '원';
 }
 
 function formatCount(count) {
+  if (!count) return '0명';
   return new Intl.NumberFormat('ko-KR').format(count) + '명';
 }
 
@@ -71,7 +73,7 @@ function createLottoCard(data, showPrizes = false) {
   `;
 
   let prizeTableHtml = '';
-  if (showPrizes && data.prizes && data.prizes.length >= 5) {
+  if (showPrizes && data.prizes && Array.isArray(data.prizes) && data.prizes.length >= 5) {
     prizeTableHtml = `
       <table class="prize-table">
         <thead>
@@ -92,6 +94,8 @@ function createLottoCard(data, showPrizes = false) {
         </tbody>
       </table>
     `;
+  } else if (showPrizes) {
+    prizeTableHtml = '<p class="info-msg">상세 당첨 정보가 없는 회차입니다. README의 스크립트로 데이터를 업데이트해 주세요.</p>';
   }
 
   element.innerHTML = `
@@ -184,29 +188,53 @@ function handleSearch() {
 
   const data = allLottoNumbers.find(n => n.drwNo == selectedRound);
   if (data) {
-    // Show detailed prize info in search view
     searchResultContainer.appendChild(createLottoCard(data, true));
   }
 }
 
-searchButton.onclick = handleSearch;
-searchSelect.onchange = handleSearch;
+if (searchButton) searchButton.onclick = handleSearch;
+if (searchSelect) searchSelect.onchange = handleSearch;
 
 // --- Initialization ---
-(async () => {
+async function loadLottoData() {
   try {
     loadingIndicator.style.display = 'block';
     
-    // Try to fetch detailed data first
-    let response = await fetch(DETAILED_DATA_URL);
-    if (!response.ok) {
-        console.log('Detailed data not found, falling back to basic data.');
-        response = await fetch(BASIC_DATA_URL);
+    let dataLoaded = false;
+    
+    // Attempt 1: Detailed Data
+    try {
+        const response = await fetch(DETAILED_DATA_URL);
+        if (response.ok) {
+            const contentType = response.headers.get("content-type");
+            if (contentType && contentType.includes("application/json")) {
+                allLottoNumbers = await response.json();
+                dataLoaded = true;
+                console.log('Detailed data loaded.');
+            }
+        }
+    } catch (e) {
+        console.warn('Detailed data fetch failed:', e);
     }
     
-    if (!response.ok) throw new Error('데이터 파일을 불러올 수 없습니다.');
+    // Attempt 2: Basic Data (Fallback)
+    if (!dataLoaded) {
+        try {
+            const response = await fetch(BASIC_DATA_URL);
+            if (response.ok) {
+                allLottoNumbers = await response.json();
+                dataLoaded = true;
+                console.log('Basic data loaded as fallback.');
+            }
+        } catch (e) {
+            console.error('Basic data fetch failed:', e);
+        }
+    }
     
-    allLottoNumbers = await response.json();
+    if (!dataLoaded || !allLottoNumbers || allLottoNumbers.length === 0) {
+        throw new Error('데이터 파일을 불러올 수 없거나 데이터가 비어있습니다.');
+    }
+    
     allLottoNumbers.sort((a, b) => b.drwNo - a.drwNo);
     
     populateSearchList();
@@ -214,7 +242,9 @@ searchSelect.onchange = handleSearch;
     
     loadingIndicator.style.display = 'none';
   } catch (e) {
-    console.error(e);
-    loadingIndicator.innerHTML = `<p class="error">오류: ${e.message}</p>`;
+    console.error('Initialization error:', e);
+    loadingIndicator.innerHTML = `<p class="error">데이터 로드 실패: ${e.message}</p>`;
   }
-})();
+}
+
+loadLottoData();
