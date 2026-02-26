@@ -44,6 +44,7 @@ function renderNumbers(page) {
         <span class="${getBallColorClass(data.drwtNo4)}">${data.drwtNo4}</span>
         <span class="${getBallColorClass(data.drwtNo5)}">${data.drwtNo5}</span>
         <span class="${getBallColorClass(data.drwtNo6)}">${data.drwtNo6}</span>
+        <span class="plus-sign">+</span>
         <span class="bonus ${getBallColorClass(data.bnusNo)}">${data.bnusNo}</span>
       </div>
     `;
