@@ -4,7 +4,7 @@ const ITEMS_PER_PAGE = 10;
 const loadingIndicator = document.getElementById('loading-indicator');
 const lottoNumbersContainer = document.getElementById('lotto-numbers-container');
 const paginationContainer = document.getElementById('pagination-container');
-const searchInput = document.getElementById('search-input');
+const searchSelect = document.getElementById('search-select');
 const searchButton = document.getElementById('search-button');
 
 let allLottoNumbers = [];
@@ -93,28 +93,48 @@ function updatePagination() {
   paginationContainer.appendChild(nextBtn);
 }
 
+function populateSearchList() {
+  // Clear existing except first option
+  searchSelect.innerHTML = '<option value="">회차 선택 (전체)</option>';
+  
+  allLottoNumbers.forEach(data => {
+    const option = document.createElement('option');
+    option.value = data.drwNo;
+    option.textContent = `${data.drwNo}회`;
+    searchSelect.appendChild(option);
+  });
+}
+
 function handleSearch() {
-  const query = searchInput.value.trim();
-  if (!query) {
+  const selectedRound = searchSelect.value;
+  if (!selectedRound) {
     filteredNumbers = [...allLottoNumbers];
   } else {
-    filteredNumbers = allLottoNumbers.filter(n => n.drwNo == query);
+    filteredNumbers = allLottoNumbers.filter(n => n.drwNo == selectedRound);
   }
   renderNumbers(1);
 }
 
 searchButton.onclick = handleSearch;
-searchInput.onkeyup = (e) => { if(e.key === 'Enter') handleSearch(); };
+searchSelect.onchange = handleSearch; // 선택 즉시 변경 반영
 
 (async () => {
   try {
     loadingIndicator.style.display = 'block';
     const res = await fetch(LOTTO_DATA_URL);
     allLottoNumbers = await res.json();
+    
+    // Sort allLottoNumbers by drwNo descending just in case
+    allLottoNumbers.sort((a, b) => b.drwNo - a.drwNo);
+    
     filteredNumbers = [...allLottoNumbers];
+    
+    populateSearchList();
     renderNumbers(1);
+    
     loadingIndicator.style.display = 'none';
   } catch (e) {
+    console.error(e);
     loadingIndicator.innerHTML = '데이터 로딩 에러';
   }
 })();
