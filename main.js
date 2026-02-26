@@ -53,13 +53,13 @@ function switchView(viewName) {
   if (viewName === 'collision') renderCollisions();
 }
 
-navHistoryBtn.onclick = () => switchView('history');
-navSearchBtn.onclick = () => switchView('search');
-navRecommendBtn.onclick = () => switchView('recommend');
-navAnalysisBtn.onclick = () => switchView('analysis');
-navPerformanceBtn.onclick = () => switchView('performance');
-navStatsBtn.onclick = () => switchView('stats');
-navCollisionBtn.onclick = () => switchView('collision');
+if (navHistoryBtn) navHistoryBtn.onclick = () => switchView('history');
+if (navSearchBtn) navSearchBtn.onclick = () => switchView('search');
+if (navRecommendBtn) navRecommendBtn.onclick = () => switchView('recommend');
+if (navAnalysisBtn) navAnalysisBtn.onclick = () => switchView('analysis');
+if (navPerformanceBtn) navPerformanceBtn.onclick = () => switchView('performance');
+if (navStatsBtn) navStatsBtn.onclick = () => switchView('stats');
+if (navCollisionBtn) navCollisionBtn.onclick = () => switchView('collision');
 
 // --- Helper Functions ---
 function getBallColorClass(num) {
@@ -172,8 +172,8 @@ function handleSearch() {
   const data = allLottoNumbers.find(n => n.drwNo == selectedRound);
   if (data) searchResultContainer.appendChild(createLottoCard(data, true));
 }
-searchButton.onclick = handleSearch;
-searchSelect.onchange = handleSearch;
+if (searchButton) searchButton.onclick = handleSearch;
+if (searchSelect) searchSelect.onchange = handleSearch;
 
 // --- Recommend View ---
 function renderRecommendations() {
@@ -187,7 +187,7 @@ function renderRecommendations() {
     recommendContainer.appendChild(card);
   }
 }
-generateBtn.onclick = renderRecommendations;
+if (generateBtn) generateBtn.onclick = renderRecommendations;
 
 // --- Analysis View ---
 function renderAnalysis() {
@@ -215,7 +215,7 @@ function renderAnalysis() {
     resultCard.innerHTML = `<span class="game-label">분석된 추천 번호</span>${ballsHtml}${rankHtml}`;
     analysisContainer.appendChild(resultCard);
 }
-analysisGenerateBtn.onclick = renderAnalysis;
+if (analysisGenerateBtn) analysisGenerateBtn.onclick = renderAnalysis;
 
 // --- Performance View ---
 function handlePerformance() {
@@ -249,8 +249,8 @@ function handlePerformance() {
     card.innerHTML = `<h3 style="text-align:center; font-size:1em;">제 ${selectedRound}회 번호의 이전 3개월 최고 성적</h3>${baseBallsHtml}${listHtml}`;
     performanceResultContainer.appendChild(card);
 }
-performanceButton.onclick = handlePerformance;
-performanceSelect.onchange = handlePerformance;
+if (performanceButton) performanceButton.onclick = handlePerformance;
+if (performanceSelect) performanceSelect.onchange = handlePerformance;
 
 // --- Stats View ---
 function renderStats() {

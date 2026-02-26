@@ -195,84 +195,6 @@
     }
   },
   {
-    "drwNo": 1208,
-    "drwNoDate": "2026-01-24",
-    "drwtNo1": 6,
-    "drwtNo2": 27,
-    "drwtNo3": 30,
-    "drwtNo4": 36,
-    "drwtNo5": 38,
-    "drwtNo6": 42,
-    "bnusNo": 25,
-    "totSellamnt": 120408668000,
-    "prizes": [
-      {
-        "winners": 6,
-        "amount": 5001713625
-      },
-      {
-        "winners": 68,
-        "amount": 73554613
-      },
-      {
-        "winners": 2932,
-        "amount": 1705906
-      },
-      {
-        "winners": 149359,
-        "amount": 50000
-      },
-      {
-        "winners": 2544535,
-        "amount": 5000
-      }
-    ],
-    "methods": {
-      "auto": 6,
-      "manual": 0,
-      "semiAuto": 0
-    }
-  },
-  {
-    "drwNo": 1207,
-    "drwNoDate": "2026-01-17",
-    "drwtNo1": 10,
-    "drwtNo2": 22,
-    "drwtNo3": 24,
-    "drwtNo4": 27,
-    "drwtNo5": 38,
-    "drwtNo6": 45,
-    "bnusNo": 11,
-    "totSellamnt": 122934287000,
-    "prizes": [
-      {
-        "winners": 17,
-        "amount": 1733202949
-      },
-      {
-        "winners": 86,
-        "amount": 57101648
-      },
-      {
-        "winners": 3365,
-        "amount": 1459359
-      },
-      {
-        "winners": 168020,
-        "amount": 50000
-      },
-      {
-        "winners": 2756042,
-        "amount": 5000
-      }
-    ],
-    "methods": {
-      "auto": 12,
-      "manual": 5,
-      "semiAuto": 0
-    }
-  },
-  {
     "drwNo": 1207,
     "drwNoDate": "2026-01-17",
     "drwtNo1": 10,
@@ -348,45 +270,6 @@
       "auto": 7,
       "manual": 5,
       "semiAuto": 3
-    }
-  },
-  {
-    "drwNo": 1205,
-    "drwNoDate": "2026-01-03",
-    "drwtNo1": 1,
-    "drwtNo2": 4,
-    "drwtNo3": 16,
-    "drwtNo4": 23,
-    "drwtNo5": 31,
-    "drwtNo6": 41,
-    "bnusNo": 2,
-    "totSellamnt": 132670747000,
-    "prizes": [
-      {
-        "winners": 10,
-        "amount": 3226386263
-      },
-      {
-        "winners": 97,
-        "amount": 55436191
-      },
-      {
-        "winners": 3486,
-        "amount": 1542545
-      },
-      {
-        "winners": 174740,
-        "amount": 50000
-      },
-      {
-        "winners": 2915978,
-        "amount": 5000
-      }
-    ],
-    "methods": {
-      "auto": 9,
-      "manual": 1,
-      "semiAuto": 0
     }
   },
   {
