@@ -312,19 +312,26 @@ function handlePerformance() {
     const baseData = allLottoNumbers.find(n => n.drwNo == selectedRound);
     const baseNumbers = [baseData.drwtNo1, baseData.drwtNo2, baseData.drwtNo3, baseData.drwtNo4, baseData.drwtNo5, baseData.drwtNo6];
 
+    // Calculate 3 months before the selected round's date
+    const drawDate = new Date(baseData.drwNoDate.replace(/\./g, '-'));
+    const threeMonthsAgo = new Date(drawDate);
+    threeMonthsAgo.setMonth(drawDate.getMonth() - 3);
+
     const results = [];
     allLottoNumbers.forEach(item => {
-        if (item.drwNo == selectedRound) return;
-        const res = checkRank(baseNumbers, item);
-        if (res.rank > 0) {
-            results.push({ 
-                drwNo: item.drwNo, 
-                date: item.drwNoDate, 
-                rank: res.rank,
-                matchedNumbers: res.matchedNumbers,
-                bonusMatched: res.bonusMatched,
-                winNums: [item.drwtNo1, item.drwtNo2, item.drwtNo3, item.drwtNo4, item.drwtNo5, item.drwtNo6, item.bnusNo]
-            });
+        const itemDate = new Date(item.drwNoDate.replace(/\./g, '-'));
+        
+        // Filter: Within 3 months BEFORE the draw date
+        if (itemDate >= threeMonthsAgo && itemDate < drawDate) {
+            const res = checkRank(baseNumbers, item);
+            if (res.rank > 0) {
+                results.push({ 
+                    drwNo: item.drwNo, 
+                    date: item.drwNoDate, 
+                    rank: res.rank,
+                    winNums: [item.drwtNo1, item.drwtNo2, item.drwtNo3, item.drwtNo4, item.drwtNo5, item.drwtNo6, item.bnusNo]
+                });
+            }
         }
     });
 
@@ -336,7 +343,6 @@ function handlePerformance() {
     let baseBallsHtml = `<div class="numbers" style="justify-content:center; gap:8px; margin-bottom:20px;">` + baseNumbers.map(n => `<span class="${getBallColorClass(n)}">${n}</span>`).join('') + `</div>`;
     
     let listHtml = top5.length > 0 ? top5.map(r => {
-        // Highlight logic for the historical winning numbers
         const winBallsHtml = r.winNums.slice(0,6).map(n => {
             const isMatched = baseNumbers.includes(n);
             return `<span class="${getBallColorClass(n)} ${isMatched ? 'matched' : ''}">${n}</span>`;
@@ -356,10 +362,11 @@ function handlePerformance() {
                 </div>
             </div>
         `;
-    }).join('') : '<p class="error">상위 성적 기록이 없습니다.</p>';
+    }).join('') : `<p class="info-msg" style="text-align:center;">선택 회차 이전 3개월 동안 5등 이내 당첨 이력이 없습니다.</p>`;
 
     card.innerHTML = `
-        <h3 style="text-align:center; margin-bottom:15px; font-size:1em;">제 ${selectedRound}회 1등 번호의 타 회차 성적 Top 5</h3>
+        <h3 style="text-align:center; margin-bottom:10px; font-size:1em;">제 ${selectedRound}회 1등 번호의</h3>
+        <h4 style="text-align:center; color:#666; margin-bottom:15px; font-size:0.9em;">이전 3개월간 최고 성적 Top 5</h4>
         ${baseBallsHtml}
         <div class="perf-list">${listHtml}</div>
     `;
@@ -374,38 +381,11 @@ async function loadLottoData() {
   try {
     loadingIndicator.style.display = 'block';
     
-    let dataLoaded = false;
+    let response = await fetch(DETAILED_DATA_URL + '?v=' + Date.now());
+    if (!response.ok) response = await fetch(BASIC_DATA_URL + '?v=' + Date.now());
+    if (!response.ok) throw new Error('데이터 파일을 불러올 수 없습니다.');
     
-    // Attempt 1: Detailed Data
-    try {
-        const response = await fetch(DETAILED_DATA_URL + '?v=' + Date.now()); // Prevent caching
-        if (response.ok) {
-            allLottoNumbers = await response.json();
-            dataLoaded = true;
-            console.log('Detailed data loaded.');
-        }
-    } catch (e) {
-        console.warn('Detailed data fetch failed:', e);
-    }
-    
-    // Attempt 2: Basic Data (Fallback)
-    if (!dataLoaded) {
-        try {
-            const response = await fetch(BASIC_DATA_URL + '?v=' + Date.now());
-            if (response.ok) {
-                allLottoNumbers = await response.json();
-                dataLoaded = true;
-                console.log('Basic data loaded as fallback.');
-            }
-        } catch (e) {
-            console.error('Basic data fetch failed:', e);
-        }
-    }
-    
-    if (!dataLoaded || !allLottoNumbers || allLottoNumbers.length === 0) {
-        throw new Error('데이터 파일을 불러올 수 없습니다.');
-    }
-    
+    allLottoNumbers = await response.json();
     allLottoNumbers.sort((a, b) => b.drwNo - a.drwNo);
     
     populateDropdowns();
