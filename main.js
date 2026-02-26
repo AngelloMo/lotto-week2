@@ -314,7 +314,12 @@ function handlePerformance() {
         if (item.drwNo == selectedRound) return;
         const res = checkRank(baseNumbers, item);
         if (res.rank > 0) {
-            results.push({ drwNo: item.drwNo, date: item.drwNoDate, rank: res.rank });
+            results.push({ 
+                drwNo: item.drwNo, 
+                date: item.drwNoDate, 
+                rank: res.rank,
+                winNums: [item.drwtNo1, item.drwtNo2, item.drwtNo3, item.drwtNo4, item.drwtNo5, item.drwtNo6, item.bnusNo]
+            });
         }
     });
 
@@ -323,18 +328,27 @@ function handlePerformance() {
 
     const card = document.createElement('div');
     card.classList.add('performance-card');
-    let ballsHtml = `<div class="numbers" style="justify-content:center; gap:8px; margin-bottom:20px;">` + baseNumbers.map(n => `<span class="${getBallColorClass(n)}">${n}</span>`).join('') + `</div>`;
+    let baseBallsHtml = `<div class="numbers" style="justify-content:center; gap:8px; margin-bottom:20px;">` + baseNumbers.map(n => `<span class="${getBallColorClass(n)}">${n}</span>`).join('') + `</div>`;
     
-    let listHtml = top5.length > 0 ? top5.map(r => `
-        <div class="perf-item">
-            <div><span class="perf-label">제 ${r.drwNo}회</span> <span class="round-info">${r.date}</span></div>
-            <div class="perf-rank">${r.rank}등</div>
-        </div>
-    `).join('') : '<p class="error">상위 성적 기록이 없습니다.</p>';
+    let listHtml = top5.length > 0 ? top5.map(r => {
+        const winBallsHtml = r.winNums.slice(0,6).map(n => `<span class="${getBallColorClass(n)}">${n}</span>`).join('');
+        const bonusBallHtml = `<span class="${getBallColorClass(r.winNums[6])}">${r.winNums[6]}</span>`;
+        return `
+            <div class="perf-item">
+                <div class="perf-top-row">
+                    <div><span class="perf-round">제 ${r.drwNo}회</span> <span class="perf-date">${r.date}</span></div>
+                    <div class="perf-rank">${r.rank}등</div>
+                </div>
+                <div class="perf-win-nums">
+                    ${winBallsHtml} <span class="plus-sign" style="font-size:1em;">+</span> ${bonusBallHtml}
+                </div>
+            </div>
+        `;
+    }).join('') : '<p class="error">상위 성적 기록이 없습니다.</p>';
 
     card.innerHTML = `
-        <h3 style="text-align:center; margin-bottom:15px;">제 ${selectedRound}회 1등 번호의 타 회차 성적 Top 5</h3>
-        ${ballsHtml}
+        <h3 style="text-align:center; margin-bottom:15px; font-size:1em;">제 ${selectedRound}회 1등 번호의 타 회차 성적 Top 5</h3>
+        ${baseBallsHtml}
         <div class="perf-list">${listHtml}</div>
     `;
     performanceResultContainer.appendChild(card);

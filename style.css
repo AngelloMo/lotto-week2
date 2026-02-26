@@ -156,35 +156,46 @@ h1 {
 
 .perf-item {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px;
+    flex-direction: column;
+    padding: 15px;
     border-bottom: 1px solid #eee;
     background: #fdfdfd;
+    gap: 10px;
 }
 
 .perf-item:last-child {
     border-bottom: none;
 }
 
+.perf-top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
 .perf-rank {
     font-weight: bold;
     color: #d32f2f;
-    font-size: 1.1em;
+    font-size: 1.2em;
 }
 
 .perf-round {
-    font-size: 0.9em;
-    color: #555;
+    font-size: 0.95em;
+    font-weight: bold;
+    color: #1877f2;
 }
 
-.perf-label {
-    background: #1877f2;
-    color: white;
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-size: 0.7em;
-    margin-right: 5px;
+.perf-date {
+    font-size: 0.8em;
+    color: #888;
+}
+
+.perf-win-nums {
+    display: flex;
+    justify-content: center;
+    gap: 4px;
+    transform: scale(0.85);
+    margin-top: 5px;
 }
 
 /* Pagination */
