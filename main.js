@@ -1,5 +1,5 @@
 const LOTTO_DATA_URL = '/lotto-data.json';
-const ITEMS_PER_PAGE = 10;
+const ITEMS_PER_PAGE = 12;
 
 // DOM Elements
 const loadingIndicator = document.getElementById('loading-indicator');
