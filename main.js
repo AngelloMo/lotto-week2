@@ -246,15 +246,18 @@ generateBtn.onclick = renderRecommendations;
 // --- Analysis View Logic ---
 function checkRank(myNumbers, historyItem) {
     const winNumbers = [historyItem.drwtNo1, historyItem.drwtNo2, historyItem.drwtNo3, historyItem.drwtNo4, historyItem.drwtNo5, historyItem.drwtNo6];
-    const matchCount = myNumbers.filter(n => winNumbers.includes(n)).length;
+    const matchedNumbers = myNumbers.filter(n => winNumbers.includes(n));
+    const matchCount = matchedNumbers.length;
     const hasBonus = myNumbers.includes(historyItem.bnusNo);
 
-    if (matchCount === 6) return 1;
-    if (matchCount === 5 && hasBonus) return 2;
-    if (matchCount === 5) return 3;
-    if (matchCount === 4) return 4;
-    if (matchCount === 3) return 5;
-    return 0; // No rank
+    let rank = 0;
+    if (matchCount === 6) rank = 1;
+    else if (matchCount === 5 && hasBonus) rank = 2;
+    else if (matchCount === 5) rank = 3;
+    else if (matchCount === 4) rank = 4;
+    else if (matchCount === 3) rank = 5;
+
+    return { rank, matchedNumbers, bonusMatched: hasBonus && rank === 2 };
 }
 
 function renderAnalysis() {
@@ -263,27 +266,47 @@ function renderAnalysis() {
 
     let bestRank = 99;
     let bestRound = null;
+    let bestMatchDetails = null;
 
     allLottoNumbers.forEach(item => {
-        const rank = checkRank(myNumbers, item);
-        if (rank > 0 && rank < bestRank) {
-            bestRank = rank;
+        const result = checkRank(myNumbers, item);
+        if (result.rank > 0 && result.rank < bestRank) {
+            bestRank = result.rank;
             bestRound = item;
+            bestMatchDetails = result;
         }
     });
 
     const resultCard = document.createElement('div');
     resultCard.classList.add('analysis-result');
     
-    let ballsHtml = `<div class="numbers">` + myNumbers.map(n => `<span class="${getBallColorClass(n)}">${n}</span>`).join('') + `</div>`;
+    // Highlight matched numbers in the recommended set
+    let ballsHtml = `<div class="numbers">` + myNumbers.map(n => {
+        const isMatched = bestMatchDetails && bestMatchDetails.matchedNumbers.includes(n);
+        const isBonusMatched = bestMatchDetails && bestMatchDetails.bonusMatched && n === bestRound.bnusNo;
+        const extraClass = (isMatched || isBonusMatched) ? 'matched' : '';
+        return `<span class="${getBallColorClass(n)} ${extraClass}">${n}</span>`;
+    }).join('') + `</div>`;
     
     let rankHtml = '';
     if (bestRound) {
+        // Create balls for the historical winning numbers
+        const winNums = [bestRound.drwtNo1, bestRound.drwtNo2, bestRound.drwtNo3, bestRound.drwtNo4, bestRound.drwtNo5, bestRound.drwtNo6];
+        const winBallsHtml = winNums.map(n => `<span class="${getBallColorClass(n)}">${n}</span>`).join('');
+        const bonusBallHtml = `<span class="${getBallColorClass(bestRound.bnusNo)}">${bestRound.bnusNo}</span>`;
+
         rankHtml = `
             <div class="best-rank-info">
-                <h4>🎉 과거 최고 성적</h4>
-                <div class="rank-text">${bestRank}등</div>
-                <div class="round-info">제 ${bestRound.drwNo}회차 (${bestRound.drwNoDate})</div>
+                <h4>🎉 과거 최고 성적: <span class="rank-text">${bestRank}등</span></h4>
+                <p class="round-info">제 ${bestRound.drwNo}회차 (${bestRound.drwNoDate})</p>
+                <div style="margin-top: 15px;">
+                    <p style="font-size: 0.8em; color: #666; margin-bottom: 5px;">당시 당첨 번호:</p>
+                    <div class="numbers" style="justify-content: center; transform: scale(0.9);">
+                        ${winBallsHtml}
+                        <span class="plus-sign">+</span>
+                        ${bonusBallHtml}
+                    </div>
+                </div>
             </div>
         `;
     } else {
@@ -291,7 +314,7 @@ function renderAnalysis() {
     }
 
     resultCard.innerHTML = `
-        <span class="game-label">분석된 추천 번호</span>
+        <span class="game-label">추천 번호 (맞은 번호 강조됨)</span>
         ${ballsHtml}
         ${rankHtml}
     `;

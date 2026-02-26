@@ -140,6 +140,12 @@ h1 {
 .num-gray { background-color: #757575 !important; }
 .num-green { background-color: #388e3c !important; }
 
+.matched {
+  box-shadow: 0 0 0 3px #ffeb3b, 0 0 15px #fbc02d !important;
+  transform: scale(1.1);
+  z-index: 1;
+}
+
 .plus-sign {
   font-size: 1.2em;
   font-weight: bold;
