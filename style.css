@@ -96,7 +96,7 @@ h1 {
 }
 
 /* Lotto Card & Numbers */
-.lotto-round, .analysis-result, .performance-card {
+.lotto-round, .analysis-result, .performance-card, .stats-card {
   background-color: white;
   border-radius: 12px;
   padding: 15px;
@@ -104,7 +104,7 @@ h1 {
   margin-bottom: 15px;
 }
 
-.lotto-round h3, .performance-card h3 {
+.lotto-round h3, .performance-card h3, .stats-card h3 {
   margin: 0 0 5px;
   color: #1877f2;
   font-size: 1.1em;
@@ -149,6 +149,53 @@ h1 {
   color: #999;
 }
 
+/* Histogram Styles */
+.histogram {
+    margin-top: 20px;
+    padding: 10px;
+}
+
+.hist-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+    gap: 10px;
+}
+
+.hist-label {
+    width: 40px;
+    font-weight: bold;
+    font-size: 0.9em;
+    color: #555;
+    text-align: right;
+}
+
+.hist-bar-container {
+    flex: 1;
+    background: #eee;
+    height: 24px;
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+}
+
+.hist-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #1877f2, #42a5f5);
+    border-radius: 12px;
+    transition: width 1s ease-out;
+}
+
+.hist-value {
+    position: absolute;
+    right: 10px;
+    top: 0;
+    line-height: 24px;
+    font-size: 0.8em;
+    font-weight: bold;
+    color: #333;
+}
+
 /* Prize Table - Mobile Optimized */
 .prize-table {
   width: 100%;
@@ -156,7 +203,7 @@ h1 {
   margin-top: 15px;
   font-size: 0.8em;
   border: 1px solid #eee;
-  display: table !important; /* Ensure it stays as a table */
+  display: table !important;
 }
 
 .prize-table th {

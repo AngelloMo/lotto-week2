@@ -16,6 +16,7 @@
     <button id="nav-history" class="active">당첨결과 이력</button>
     <button id="nav-search">회차 검색</button>
     <button id="nav-performance">회차별 성적</button>
+    <button id="nav-stats">성적 통계</button>
     <button id="nav-recommend">번호 추천</button>
     <button id="nav-analysis">분석 추천</button>
   </nav>
@@ -48,6 +49,15 @@
       <button id="performance-button">성적 분석</button>
     </div>
     <div id="performance-result-container"></div>
+  </section>
+
+  <!-- Stats View -->
+  <section id="stats-view" class="view-section" style="display: none;">
+    <div class="recommend-header">
+      <h2>과거 성적 분포 (500회 이후)</h2>
+      <p>500회부터 최신 회차까지의 1등 번호들이<br>해당 회차 이전 과거에 기록했던 최고 순위 분포입니다.</p>
+    </div>
+    <div id="stats-container"></div>
   </section>
 
   <!-- Recommend View -->
