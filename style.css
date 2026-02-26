@@ -18,7 +18,7 @@ h1 {
 /* Navigation - Better for touch */
 .main-nav {
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 5px;
   margin-bottom: 20px;
   position: sticky;
@@ -27,10 +27,15 @@ h1 {
   padding: 10px 0;
   z-index: 100;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.main-nav::-webkit-scrollbar {
+  display: none;
 }
 
 .main-nav button {
-  padding: 10px 8px;
+  padding: 10px 12px;
   font-size: 0.8em;
   font-weight: 600;
   border: 1px solid #ddd;
@@ -40,9 +45,7 @@ h1 {
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
-  flex: 1;
   min-width: 80px;
-  max-width: 100px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
@@ -93,7 +96,7 @@ h1 {
 }
 
 /* Lotto Card & Numbers */
-.lotto-round, .analysis-result {
+.lotto-round, .analysis-result, .performance-card {
   background-color: white;
   border-radius: 12px;
   padding: 15px;
@@ -101,16 +104,10 @@ h1 {
   margin-bottom: 15px;
 }
 
-.lotto-round h3 {
+.lotto-round h3, .performance-card h3 {
   margin: 0 0 5px;
   color: #1877f2;
   font-size: 1.1em;
-}
-
-.lotto-round p {
-  margin: 0 0 15px;
-  font-size: 0.85em;
-  color: #777;
 }
 
 .numbers {
@@ -131,7 +128,7 @@ h1 {
   color: white;
   font-weight: bold;
   font-size: 0.8em;
-  background-color: #fbc02d; /* 1-10 Yellow */
+  background-color: #fbc02d;
   box-shadow: inset -2px -2px 4px rgba(0,0,0,0.2);
 }
 
@@ -150,86 +147,44 @@ h1 {
   font-size: 1.2em;
   font-weight: bold;
   color: #999;
-  background: none !important;
-  box-shadow: none !important;
-  width: auto !important;
 }
 
-/* Prize Table - Mobile Optimized */
-.prize-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 15px;
-  font-size: 0.8em;
-  border: 1px solid #eee;
-}
-
-.prize-table th {
-  background-color: #f8f9fa;
-  color: #666;
-  padding: 8px 4px;
-  border-bottom: 2px solid #eee;
-  text-align: center;
-}
-
-.prize-table td {
-  padding: 10px 4px;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.prize-table tr td:first-child {
-  font-weight: bold;
-  text-align: center;
-  background-color: #fafafa;
-  width: 45px;
-}
-
-.winners-count {
-  text-align: center;
-  color: #1877f2;
-}
-
-.prize-amount {
-  text-align: right;
-  color: #d32f2f;
-  font-weight: bold;
-  padding-right: 8px !important;
-}
-
-/* Remarks & Footer Info */
-.total-info {
-  margin-top: 15px;
-  padding: 12px;
-  background-color: #fdfdfd;
-  border: 1px dashed #ddd;
-  border-radius: 8px;
-  font-size: 0.8em;
-}
-
-/* Analysis Styles */
-.best-rank-info {
-    text-align: center;
-    background: #e7f3ff;
-    padding: 15px;
-    border-radius: 10px;
+/* Performance Table */
+.perf-list {
     margin-top: 15px;
-    border: 1px solid #1877f2;
 }
 
-.best-rank-info h4 {
-    margin: 0 0 5px;
-    color: #1877f2;
+.perf-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    border-bottom: 1px solid #eee;
+    background: #fdfdfd;
 }
 
-.rank-text {
-    font-size: 1.4em;
+.perf-item:last-child {
+    border-bottom: none;
+}
+
+.perf-rank {
     font-weight: bold;
     color: #d32f2f;
+    font-size: 1.1em;
 }
 
-.round-info {
+.perf-round {
     font-size: 0.9em;
-    color: #666;
+    color: #555;
+}
+
+.perf-label {
+    background: #1877f2;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.7em;
+    margin-right: 5px;
 }
 
 /* Pagination */
@@ -244,11 +199,8 @@ h1 {
 #pagination-container button {
   min-width: 35px;
   height: 35px;
-  padding: 0 5px;
-  font-size: 0.85em;
   border: 1px solid #ddd;
   background: white;
-  color: #555;
   border-radius: 4px;
 }
 
@@ -256,38 +208,6 @@ h1 {
   background: #1877f2;
   color: white;
   border-color: #1877f2;
-}
-
-/* Recommendations */
-.recommend-header {
-  text-align: center;
-  padding: 20px;
-  background: white;
-  border-radius: 12px;
-  margin-bottom: 20px;
-}
-
-.recommend-card {
-  background: white;
-  border-radius: 12px;
-  padding: 15px;
-  margin-bottom: 12px;
-  border-left: 4px solid #1877f2;
-}
-
-.game-label {
-  font-size: 0.85em;
-  color: #888;
-  font-weight: bold;
-}
-
-/* Media Queries for larger screens */
-@media (min-width: 480px) {
-  .numbers span {
-    width: 38px;
-    height: 38px;
-    font-size: 0.9em;
-  }
 }
 
 @media (min-width: 768px) {

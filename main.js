@@ -8,6 +8,7 @@ const historyView = document.getElementById('history-view');
 const searchView = document.getElementById('search-view');
 const recommendView = document.getElementById('recommend-view');
 const analysisView = document.getElementById('analysis-view');
+const performanceView = document.getElementById('performance-view');
 
 const lottoNumbersContainer = document.getElementById('lotto-numbers-container');
 const paginationContainer = document.getElementById('pagination-container');
@@ -18,11 +19,15 @@ const recommendContainer = document.getElementById('recommend-container');
 const generateBtn = document.getElementById('generate-btn');
 const analysisContainer = document.getElementById('analysis-container');
 const analysisGenerateBtn = document.getElementById('analysis-generate-btn');
+const performanceSelect = document.getElementById('performance-select');
+const performanceButton = document.getElementById('performance-button');
+const performanceResultContainer = document.getElementById('performance-result-container');
 
 const navHistoryBtn = document.getElementById('nav-history');
 const navSearchBtn = document.getElementById('nav-search');
 const navRecommendBtn = document.getElementById('nav-recommend');
 const navAnalysisBtn = document.getElementById('nav-analysis');
+const navPerformanceBtn = document.getElementById('nav-performance');
 
 let allLottoNumbers = [];
 let currentPage = 1;
@@ -33,21 +38,23 @@ function switchView(viewName) {
   searchView.style.display = viewName === 'search' ? 'block' : 'none';
   recommendView.style.display = viewName === 'recommend' ? 'block' : 'none';
   analysisView.style.display = viewName === 'analysis' ? 'block' : 'none';
+  performanceView.style.display = viewName === 'performance' ? 'block' : 'none';
 
   navHistoryBtn.classList.toggle('active', viewName === 'history');
   navSearchBtn.classList.toggle('active', viewName === 'search');
   navRecommendBtn.classList.toggle('active', viewName === 'recommend');
   navAnalysisBtn.classList.toggle('active', viewName === 'analysis');
+  navPerformanceBtn.classList.toggle('active', viewName === 'performance');
 
   if (viewName === 'history') renderHistory(currentPage);
   if (viewName === 'recommend') renderRecommendations();
-  if (viewName === 'analysis') renderAnalysis();
 }
 
 navHistoryBtn.onclick = () => switchView('history');
 navSearchBtn.onclick = () => switchView('search');
 navRecommendBtn.onclick = () => switchView('recommend');
 navAnalysisBtn.onclick = () => switchView('analysis');
+navPerformanceBtn.onclick = () => switchView('performance');
 
 // --- Helper Functions ---
 function getBallColorClass(num) {
@@ -75,6 +82,22 @@ function generateRandomNumbers() {
     if (numbers.indexOf(r) === -1) numbers.push(r);
   }
   return numbers.sort((a, b) => a - b);
+}
+
+function checkRank(myNumbers, historyItem) {
+    const winNumbers = [historyItem.drwtNo1, historyItem.drwtNo2, historyItem.drwtNo3, historyItem.drwtNo4, historyItem.drwtNo5, historyItem.drwtNo6];
+    const matchedNumbers = myNumbers.filter(n => winNumbers.includes(n));
+    const matchCount = matchedNumbers.length;
+    const hasBonus = myNumbers.includes(historyItem.bnusNo);
+
+    let rank = 0;
+    if (matchCount === 6) rank = 1;
+    else if (matchCount === 5 && hasBonus) rank = 2;
+    else if (matchCount === 5) rank = 3;
+    else if (matchCount === 4) rank = 4;
+    else if (matchCount === 3) rank = 5;
+
+    return { rank, matchedNumbers, bonusMatched: hasBonus && rank === 2 };
 }
 
 function createLottoCard(data, showPrizes = false) {
@@ -204,14 +227,10 @@ function updatePagination() {
 }
 
 // --- Search View Logic ---
-function populateSearchList() {
-  searchSelect.innerHTML = '<option value="">회차를 선택하세요</option>';
-  allLottoNumbers.forEach(data => {
-    const option = document.createElement('option');
-    option.value = data.drwNo;
-    option.textContent = `${data.drwNo}회 (${data.drwNoDate})`;
-    searchSelect.appendChild(option);
-  });
+function populateDropdowns() {
+  const options = allLottoNumbers.map(data => `<option value="${data.drwNo}">${data.drwNo}회 (${data.drwNoDate})</option>`).join('');
+  searchSelect.innerHTML = '<option value="">회차를 선택하세요</option>' + options;
+  performanceSelect.innerHTML = '<option value="">기준 회차 선택</option>' + options;
 }
 
 function handleSearch() {
@@ -244,22 +263,6 @@ function renderRecommendations() {
 generateBtn.onclick = renderRecommendations;
 
 // --- Analysis View Logic ---
-function checkRank(myNumbers, historyItem) {
-    const winNumbers = [historyItem.drwtNo1, historyItem.drwtNo2, historyItem.drwtNo3, historyItem.drwtNo4, historyItem.drwtNo5, historyItem.drwtNo6];
-    const matchedNumbers = myNumbers.filter(n => winNumbers.includes(n));
-    const matchCount = matchedNumbers.length;
-    const hasBonus = myNumbers.includes(historyItem.bnusNo);
-
-    let rank = 0;
-    if (matchCount === 6) rank = 1;
-    else if (matchCount === 5 && hasBonus) rank = 2;
-    else if (matchCount === 5) rank = 3;
-    else if (matchCount === 4) rank = 4;
-    else if (matchCount === 3) rank = 5;
-
-    return { rank, matchedNumbers, bonusMatched: hasBonus && rank === 2 };
-}
-
 function renderAnalysis() {
     const myNumbers = generateRandomNumbers();
     analysisContainer.innerHTML = '';
@@ -279,49 +282,66 @@ function renderAnalysis() {
 
     const resultCard = document.createElement('div');
     resultCard.classList.add('analysis-result');
-    
-    // Highlight matched numbers in the recommended set
     let ballsHtml = `<div class="numbers">` + myNumbers.map(n => {
         const isMatched = bestMatchDetails && bestMatchDetails.matchedNumbers.includes(n);
         const isBonusMatched = bestMatchDetails && bestMatchDetails.bonusMatched && n === bestRound.bnusNo;
-        const extraClass = (isMatched || isBonusMatched) ? 'matched' : '';
-        return `<span class="${getBallColorClass(n)} ${extraClass}">${n}</span>`;
+        return `<span class="${getBallColorClass(n)} ${isMatched || isBonusMatched ? 'matched' : ''}">${n}</span>`;
     }).join('') + `</div>`;
     
-    let rankHtml = '';
-    if (bestRound) {
-        // Create balls for the historical winning numbers
-        const winNums = [bestRound.drwtNo1, bestRound.drwtNo2, bestRound.drwtNo3, bestRound.drwtNo4, bestRound.drwtNo5, bestRound.drwtNo6];
-        const winBallsHtml = winNums.map(n => `<span class="${getBallColorClass(n)}">${n}</span>`).join('');
-        const bonusBallHtml = `<span class="${getBallColorClass(bestRound.bnusNo)}">${bestRound.bnusNo}</span>`;
+    let rankHtml = bestRound ? `
+        <div class="best-rank-info">
+            <h4>🎉 과거 최고 성적: <span class="rank-text">${bestRank}등</span></h4>
+            <p class="round-info">제 ${bestRound.drwNo}회차 (${bestRound.drwNoDate})</p>
+        </div>` : `<div class="best-rank-info"><h4>😅 성적 없음</h4></div>`;
 
-        rankHtml = `
-            <div class="best-rank-info">
-                <h4>🎉 과거 최고 성적: <span class="rank-text">${bestRank}등</span></h4>
-                <p class="round-info">제 ${bestRound.drwNo}회차 (${bestRound.drwNoDate})</p>
-                <div style="margin-top: 15px;">
-                    <p style="font-size: 0.8em; color: #666; margin-bottom: 5px;">당시 당첨 번호:</p>
-                    <div class="numbers" style="justify-content: center; transform: scale(0.9);">
-                        ${winBallsHtml}
-                        <span class="plus-sign">+</span>
-                        ${bonusBallHtml}
-                    </div>
-                </div>
-            </div>
-        `;
-    } else {
-        rankHtml = `<div class="best-rank-info"><h4>😅 과거 성적 없음</h4><p>1,212회차 중 5등 이내에 든 적이 없는 번호입니다.</p></div>`;
-    }
-
-    resultCard.innerHTML = `
-        <span class="game-label">추천 번호 (맞은 번호 강조됨)</span>
-        ${ballsHtml}
-        ${rankHtml}
-    `;
+    resultCard.innerHTML = `<span class="game-label">분석된 추천 번호</span>${ballsHtml}${rankHtml}`;
     analysisContainer.appendChild(resultCard);
 }
 
 analysisGenerateBtn.onclick = renderAnalysis;
+
+// --- Performance View Logic ---
+function handlePerformance() {
+    const selectedRound = performanceSelect.value;
+    performanceResultContainer.innerHTML = '';
+    if (!selectedRound) return;
+
+    const baseData = allLottoNumbers.find(n => n.drwNo == selectedRound);
+    const baseNumbers = [baseData.drwtNo1, baseData.drwtNo2, baseData.drwtNo3, baseData.drwtNo4, baseData.drwtNo5, baseData.drwtNo6];
+
+    const results = [];
+    allLottoNumbers.forEach(item => {
+        if (item.drwNo == selectedRound) return;
+        const res = checkRank(baseNumbers, item);
+        if (res.rank > 0) {
+            results.push({ drwNo: item.drwNo, date: item.drwNoDate, rank: res.rank });
+        }
+    });
+
+    results.sort((a, b) => a.rank - b.rank || b.drwNo - a.drwNo);
+    const top5 = results.slice(0, 5);
+
+    const card = document.createElement('div');
+    card.classList.add('performance-card');
+    let ballsHtml = `<div class="numbers" style="justify-content:center; gap:8px; margin-bottom:20px;">` + baseNumbers.map(n => `<span class="${getBallColorClass(n)}">${n}</span>`).join('') + `</div>`;
+    
+    let listHtml = top5.length > 0 ? top5.map(r => `
+        <div class="perf-item">
+            <div><span class="perf-label">제 ${r.drwNo}회</span> <span class="round-info">${r.date}</span></div>
+            <div class="perf-rank">${r.rank}등</div>
+        </div>
+    `).join('') : '<p class="error">상위 성적 기록이 없습니다.</p>';
+
+    card.innerHTML = `
+        <h3 style="text-align:center; margin-bottom:15px;">제 ${selectedRound}회 1등 번호의 타 회차 성적 Top 5</h3>
+        ${ballsHtml}
+        <div class="perf-list">${listHtml}</div>
+    `;
+    performanceResultContainer.appendChild(card);
+}
+
+performanceButton.onclick = handlePerformance;
+performanceSelect.onchange = handlePerformance;
 
 // --- Initialization ---
 async function loadLottoData() {
@@ -329,15 +349,13 @@ async function loadLottoData() {
     loadingIndicator.style.display = 'block';
     let response = await fetch(DETAILED_DATA_URL + '?v=' + Date.now());
     if (!response.ok) response = await fetch(BASIC_DATA_URL + '?v=' + Date.now());
-    if (!response.ok) throw new Error('데이터 파일을 불러올 수 없습니다.');
     allLottoNumbers = await response.json();
     allLottoNumbers.sort((a, b) => b.drwNo - a.drwNo);
-    populateSearchList();
+    populateDropdowns();
     renderHistory(1);
     loadingIndicator.style.display = 'none';
   } catch (e) {
-    console.error('Initialization error:', e);
-    loadingIndicator.innerHTML = `<p class="error">데이터 로드 실패: ${e.message}</p>`;
+    loadingIndicator.innerHTML = `<p class="error">데이터 로드 실패</p>`;
   }
 }
 

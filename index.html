@@ -15,6 +15,7 @@
   <nav class="main-nav">
     <button id="nav-history" class="active">당첨결과 이력</button>
     <button id="nav-search">회차 검색</button>
+    <button id="nav-performance">회차별 성적</button>
     <button id="nav-recommend">번호 추천</button>
     <button id="nav-analysis">분석 추천</button>
   </nav>
@@ -36,6 +37,17 @@
       <button id="search-button">조회</button>
     </div>
     <div id="search-result-container"></div>
+  </section>
+
+  <!-- Round Performance View -->
+  <section id="performance-view" class="view-section" style="display: none;">
+    <div class="search-container">
+      <select id="performance-select">
+        <option value="">기준 회차 선택</option>
+      </select>
+      <button id="performance-button">성적 분석</button>
+    </div>
+    <div id="performance-result-container"></div>
   </section>
 
   <!-- Recommend View -->
