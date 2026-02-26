@@ -1,2 +1,0 @@
-/getLatestDrawNumber  https://YOUR_FIREBASE_REGION-YOUR_PROJECT_ID.cloudfunctions.net/getLatestDrawNumber  200
-/getSingleLottoNumber  https://YOUR_FIREBASE_REGION-YOUR_PROJECT_ID.cloudfunctions.net/getSingleLottoNumber  200

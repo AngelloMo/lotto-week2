@@ -1,5 +1,4 @@
-const GET_LATEST_DRAW_URL = '/getLatestDrawNumber';
-const GET_SINGLE_DRAW_URL = '/getSingleLottoNumber';
+const LOTTO_DATA_URL = '/lotto-data.json';
 const ITEMS_PER_PAGE = 30;
 
 const loadingIndicator = document.getElementById('loading-indicator');
@@ -8,22 +7,6 @@ const paginationContainer = document.getElementById('pagination-container');
 
 let allLottoNumbers = [];
 let currentPage = 1;
-
-async function getSingleLottoNumber(drwNo) {
-  try {
-    const response = await fetch(`${GET_SINGLE_DRAW_URL}?drwNo=${drwNo}`);
-    console.log(`Fetching single draw data from: ${GET_SINGLE_DRAW_URL}?drwNo=${drwNo}, Response status: ${response.status}`);
-    if (response.ok) {
-      const data = await response.json();
-      if (data.returnValue === 'success') {
-        return data;
-      }
-    }
-  } catch (error) {
-    console.error(`Error fetching data for round ${drwNo}:`, error);
-  }
-  return null;
-}
 
 function renderNumbers(page) {
   currentPage = page;
@@ -66,11 +49,14 @@ function updatePagination() {
 
 function renderPagination(totalPages) {
   paginationContainer.innerHTML = '';
+  if (totalPages <= 1) return;
+
   for (let i = 1; i <= totalPages; i++) {
     const button = document.createElement('button');
     button.textContent = i;
     button.addEventListener('click', () => {
       renderNumbers(i);
+      window.scrollTo(0, 0);
     });
     paginationContainer.appendChild(button);
   }
@@ -78,45 +64,20 @@ function renderPagination(totalPages) {
 
 (async () => {
   try {
-    console.log('Fetching latest draw number...');
     loadingIndicator.style.display = 'block';
 
-    const latestDrawResponse = await fetch(GET_LATEST_DRAW_URL);
-    console.log(`Fetching latest draw from: ${GET_LATEST_DRAW_URL}, Response status: ${latestDrawResponse.status}`);
-    if (!latestDrawResponse.ok) {
-        throw new Error(`HTTP error! status: ${latestDrawResponse.status} from ${GET_LATEST_DRAW_URL}`);
+    console.log('Fetching local lotto data...');
+    const response = await fetch(LOTTO_DATA_URL);
+    
+    if (!response.ok) {
+        throw new Error(`데이터 파일을 찾을 수 없습니다. (Status: ${response.status})`);
     }
     
-    let latestDrwNo;
-    try {
-        const data = await latestDrawResponse.json();
-        latestDrwNo = data.latestDrwNo;
-    } catch (e) {
-        const text = await latestDrawResponse.text();
-        console.error("Failed to parse JSON. Response text:", text);
-        throw new Error(`Invalid JSON response: ${e.message}`);
-    }
-    
-    console.log('Latest draw number:', latestDrwNo);
-
-    if (latestDrwNo < 1) {
-        throw new Error("Could not determine the latest draw number.");
-    }
-
-    // Now fetch latest 100 numbers individually (instead of all 1200+)
-    console.log('Fetching latest 100 lottery data individually...');
-    const fetchPromises = [];
-    const fetchLimit = Math.max(1, latestDrwNo - 100);
-    for (let i = latestDrwNo; i >= fetchLimit; i--) {
-      fetchPromises.push(getSingleLottoNumber(i));
-    }
-    const results = await Promise.all(fetchPromises);
-    allLottoNumbers = results.filter(Boolean); // Filter out any null responses
-
-    console.log('All lotto numbers fetched:', allLottoNumbers);
+    allLottoNumbers = await response.json();
+    console.log('Data loaded:', allLottoNumbers.length, 'records');
 
     if (!Array.isArray(allLottoNumbers) || allLottoNumbers.length === 0) {
-        throw new Error("No lottery data received.");
+        throw new Error("데이터가 비어 있습니다.");
     }
 
     const totalPages = Math.ceil(allLottoNumbers.length / ITEMS_PER_PAGE);
@@ -128,9 +89,9 @@ function renderPagination(totalPages) {
     paginationContainer.style.visibility = 'visible';
 
   } catch (error) {
-    console.error('Error fetching lottery data:', error);
+    console.error('Error:', error);
     loadingIndicator.style.display = 'none';
-    lottoNumbersContainer.innerHTML = `<p class="error">데이터를 불러오는 데 실패했습니다. 나중에 다시 시도해주세요. (${error.message})</p>`;
+    lottoNumbersContainer.innerHTML = `<p class="error">데이터를 불러오는 데 실패했습니다. <br>(${error.message})</p>`;
     lottoNumbersContainer.style.visibility = 'visible';
   }
 })();
