@@ -6,35 +6,40 @@ const ITEMS_PER_PAGE = 12;
 const loadingIndicator = document.getElementById('loading-indicator');
 const historyView = document.getElementById('history-view');
 const searchView = document.getElementById('search-view');
+const recommendView = document.getElementById('recommend-view');
+
 const lottoNumbersContainer = document.getElementById('lotto-numbers-container');
 const paginationContainer = document.getElementById('pagination-container');
 const searchSelect = document.getElementById('search-select');
 const searchButton = document.getElementById('search-button');
 const searchResultContainer = document.getElementById('search-result-container');
+const recommendContainer = document.getElementById('recommend-container');
+const generateBtn = document.getElementById('generate-btn');
+
 const navHistoryBtn = document.getElementById('nav-history');
 const navSearchBtn = document.getElementById('nav-search');
+const navRecommendBtn = document.getElementById('nav-recommend');
 
 let allLottoNumbers = [];
 let currentPage = 1;
 
 // --- View Toggling ---
 function switchView(viewName) {
-  if (viewName === 'history') {
-    historyView.style.display = 'block';
-    searchView.style.display = 'none';
-    navHistoryBtn.classList.add('active');
-    navSearchBtn.classList.remove('active');
-    renderHistory(currentPage);
-  } else {
-    historyView.style.display = 'none';
-    searchView.style.display = 'block';
-    navHistoryBtn.classList.remove('active');
-    navSearchBtn.classList.add('active');
-  }
+  historyView.style.display = viewName === 'history' ? 'block' : 'none';
+  searchView.style.display = viewName === 'search' ? 'block' : 'none';
+  recommendView.style.display = viewName === 'recommend' ? 'block' : 'none';
+
+  navHistoryBtn.classList.toggle('active', viewName === 'history');
+  navSearchBtn.classList.toggle('active', viewName === 'search');
+  navRecommendBtn.classList.toggle('active', viewName === 'recommend');
+
+  if (viewName === 'history') renderHistory(currentPage);
+  if (viewName === 'recommend') renderRecommendations();
 }
 
-if (navHistoryBtn) navHistoryBtn.onclick = () => switchView('history');
-if (navSearchBtn) navSearchBtn.onclick = () => switchView('search');
+navHistoryBtn.onclick = () => switchView('history');
+navSearchBtn.onclick = () => switchView('search');
+navRecommendBtn.onclick = () => switchView('recommend');
 
 // --- Helper Functions ---
 function getBallColorClass(num) {
@@ -45,21 +50,12 @@ function getBallColorClass(num) {
   return 'num-green';
 }
 
-function formatCurrency(amount) {
-  if (!amount) return '0원';
-  return new Intl.NumberFormat('ko-KR').format(amount) + '원';
-}
-
-function formatCount(count) {
-  if (!count) return '0명';
-  return new Intl.NumberFormat('ko-KR').format(count) + '명';
-}
-
-function createLottoCard(data, showPrizes = false) {
+function createLottoCard(data) {
   const element = document.createElement('div');
   element.classList.add('lotto-round');
-  
-  let numbersHtml = `
+  element.innerHTML = `
+    <h3>${data.drwNo}회 당첨결과</h3>
+    <p>추첨일: ${data.drwNoDate}</p>
     <div class="numbers">
       <span class="${getBallColorClass(data.drwtNo1)}">${data.drwtNo1}</span>
       <span class="${getBallColorClass(data.drwtNo2)}">${data.drwtNo2}</span>
@@ -70,51 +66,6 @@ function createLottoCard(data, showPrizes = false) {
       <span class="plus-sign">+</span>
       <span class="bonus ${getBallColorClass(data.bnusNo)}">${data.bnusNo}</span>
     </div>
-  `;
-
-  let prizeTableHtml = '';
-  let totalInfoHtml = '';
-
-  if (showPrizes && data.prizes && Array.isArray(data.prizes) && data.prizes.length >= 5) {
-    const totalWinners = data.prizes.reduce((sum, p) => sum + parseInt(p.winners || 0), 0);
-    
-    prizeTableHtml = `
-      <table class="prize-table">
-        <thead>
-          <tr>
-            <th>순위</th>
-            <th>당첨자 수</th>
-            <th>당첨금액 (1인당)</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${data.prizes.map((p, i) => `
-            <tr>
-              <td>${i + 1}등</td>
-              <td class="winners-count">${formatCount(p.winners)}</td>
-              <td class="prize-amount">${formatCurrency(p.amount)}</td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-    `;
-
-    totalInfoHtml = `
-      <div class="total-info">
-        <span>총 당첨자: ${formatCount(totalWinners)}</span>
-        <span>총 판매액: ${formatCurrency(data.totSellamnt)}</span>
-      </div>
-    `;
-  } else if (showPrizes) {
-    prizeTableHtml = '<p class="info-msg">상세 당첨 정보가 없는 회차입니다. README의 스크립트로 데이터를 업데이트해 주세요.</p>';
-  }
-
-  element.innerHTML = `
-    <h3>${data.drwNo}회 당첨결과</h3>
-    <p>추첨일: ${data.drwNoDate}</p>
-    ${numbersHtml}
-    ${prizeTableHtml}
-    ${totalInfoHtml}
   `;
   return element;
 }
@@ -128,7 +79,7 @@ function renderHistory(page) {
   const numbersToRender = allLottoNumbers.slice(start, end);
 
   numbersToRender.forEach(data => {
-    lottoNumbersContainer.appendChild(createLottoCard(data, false));
+    lottoNumbersContainer.appendChild(createLottoCard(data));
   });
   
   updatePagination();
@@ -200,53 +151,51 @@ function handleSearch() {
 
   const data = allLottoNumbers.find(n => n.drwNo == selectedRound);
   if (data) {
-    searchResultContainer.appendChild(createLottoCard(data, true));
+    searchResultContainer.appendChild(createLottoCard(data));
   }
 }
 
-if (searchButton) searchButton.onclick = handleSearch;
-if (searchSelect) searchSelect.onchange = handleSearch;
+searchButton.onclick = handleSearch;
+searchSelect.onchange = handleSearch;
+
+// --- Recommend View Logic ---
+function generateRandomNumbers() {
+  const numbers = [];
+  while (numbers.length < 6) {
+    const r = Math.floor(Math.random() * 45) + 1;
+    if (numbers.indexOf(r) === -1) numbers.push(r);
+  }
+  return numbers.sort((a, b) => a - b);
+}
+
+function renderRecommendations() {
+  recommendContainer.innerHTML = '';
+  for (let i = 1; i <= 5; i++) {
+    const gameNumbers = generateRandomNumbers();
+    const card = document.createElement('div');
+    card.classList.add('recommend-card');
+    
+    let ballsHtml = gameNumbers.map(n => `<span class="${getBallColorClass(n)}">${n}</span>`).join('');
+    
+    card.innerHTML = `
+      <span class="game-label">조합 ${i}</span>
+      <div class="numbers">${ballsHtml}</div>
+    `;
+    recommendContainer.appendChild(card);
+  }
+}
+
+generateBtn.onclick = renderRecommendations;
 
 // --- Initialization ---
-async function loadLottoData() {
+(async () => {
   try {
     loadingIndicator.style.display = 'block';
     
-    let dataLoaded = false;
+    let response = await fetch(BASIC_DATA_URL);
+    if (!response.ok) throw new Error('데이터 파일을 불러올 수 없습니다.');
     
-    // Attempt 1: Detailed Data
-    try {
-        const response = await fetch(DETAILED_DATA_URL);
-        if (response.ok) {
-            const contentType = response.headers.get("content-type");
-            if (contentType && contentType.includes("application/json")) {
-                allLottoNumbers = await response.json();
-                dataLoaded = true;
-                console.log('Detailed data loaded.');
-            }
-        }
-    } catch (e) {
-        console.warn('Detailed data fetch failed:', e);
-    }
-    
-    // Attempt 2: Basic Data (Fallback)
-    if (!dataLoaded) {
-        try {
-            const response = await fetch(BASIC_DATA_URL);
-            if (response.ok) {
-                allLottoNumbers = await response.json();
-                dataLoaded = true;
-                console.log('Basic data loaded as fallback.');
-            }
-        } catch (e) {
-            console.error('Basic data fetch failed:', e);
-        }
-    }
-    
-    if (!dataLoaded || !allLottoNumbers || allLottoNumbers.length === 0) {
-        throw new Error('데이터 파일을 불러올 수 없거나 데이터가 비어있습니다.');
-    }
-    
+    allLottoNumbers = await response.json();
     allLottoNumbers.sort((a, b) => b.drwNo - a.drwNo);
     
     populateSearchList();
@@ -254,9 +203,7 @@ async function loadLottoData() {
     
     loadingIndicator.style.display = 'none';
   } catch (e) {
-    console.error('Initialization error:', e);
-    loadingIndicator.innerHTML = `<p class="error">데이터 로드 실패: ${e.message}</p>`;
+    console.error(e);
+    loadingIndicator.innerHTML = `<p class="error">오류: ${e.message}</p>`;
   }
-}
-
-loadLottoData();
+})();

@@ -15,6 +15,7 @@
   <nav class="main-nav">
     <button id="nav-history" class="active">당첨결과 이력</button>
     <button id="nav-search">회차 검색</button>
+    <button id="nav-recommend">번호 추천</button>
   </nav>
 
   <div id="loading-indicator">데이터를 불러오는 중...</div>
@@ -34,6 +35,16 @@
       <button id="search-button">조회</button>
     </div>
     <div id="search-result-container"></div>
+  </section>
+
+  <!-- Recommend View -->
+  <section id="recommend-view" class="view-section" style="display: none;">
+    <div class="recommend-header">
+      <h2>행운의 추천 번호</h2>
+      <p>이번 주 행운을 빌어요! 5개의 조합을 생성합니다.</p>
+      <button id="generate-btn">새로운 번호 생성</button>
+    </div>
+    <div id="recommend-container"></div>
   </section>
 
   <script defer type="text/javascript" src="/main.js"></script>
