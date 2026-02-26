@@ -1,4 +1,5 @@
-const LOTTO_DATA_URL = '/lotto-data.json';
+const DETAILED_DATA_URL = '/lotto_detailed.json';
+const BASIC_DATA_URL = '/lotto-data.json';
 const ITEMS_PER_PAGE = 12;
 
 // DOM Elements
@@ -44,12 +45,19 @@ function getBallColorClass(num) {
   return 'num-green';
 }
 
-function createLottoCard(data) {
+function formatCurrency(amount) {
+  return new Intl.NumberFormat('ko-KR').format(amount) + '원';
+}
+
+function formatCount(count) {
+  return new Intl.NumberFormat('ko-KR').format(count) + '명';
+}
+
+function createLottoCard(data, showPrizes = false) {
   const element = document.createElement('div');
   element.classList.add('lotto-round');
-  element.innerHTML = `
-    <h3>${data.drwNo}회 당첨결과</h3>
-    <p>추첨일: ${data.drwNoDate}</p>
+  
+  let numbersHtml = `
     <div class="numbers">
       <span class="${getBallColorClass(data.drwtNo1)}">${data.drwtNo1}</span>
       <span class="${getBallColorClass(data.drwtNo2)}">${data.drwtNo2}</span>
@@ -60,6 +68,37 @@ function createLottoCard(data) {
       <span class="plus-sign">+</span>
       <span class="bonus ${getBallColorClass(data.bnusNo)}">${data.bnusNo}</span>
     </div>
+  `;
+
+  let prizeTableHtml = '';
+  if (showPrizes && data.prizes && data.prizes.length >= 5) {
+    prizeTableHtml = `
+      <table class="prize-table">
+        <thead>
+          <tr>
+            <th>순위</th>
+            <th>당첨자 수</th>
+            <th>당첨금액 (1인당)</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${data.prizes.map((p, i) => `
+            <tr>
+              <td>${i + 1}등</td>
+              <td class="winners-count">${formatCount(p.winners)}</td>
+              <td class="prize-amount">${formatCurrency(p.amount)}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  }
+
+  element.innerHTML = `
+    <h3>${data.drwNo}회 당첨결과</h3>
+    <p>추첨일: ${data.drwNoDate}</p>
+    ${numbersHtml}
+    ${prizeTableHtml}
   `;
   return element;
 }
@@ -73,7 +112,7 @@ function renderHistory(page) {
   const numbersToRender = allLottoNumbers.slice(start, end);
 
   numbersToRender.forEach(data => {
-    lottoNumbersContainer.appendChild(createLottoCard(data));
+    lottoNumbersContainer.appendChild(createLottoCard(data, false));
   });
   
   updatePagination();
@@ -145,7 +184,8 @@ function handleSearch() {
 
   const data = allLottoNumbers.find(n => n.drwNo == selectedRound);
   if (data) {
-    searchResultContainer.appendChild(createLottoCard(data));
+    // Show detailed prize info in search view
+    searchResultContainer.appendChild(createLottoCard(data, true));
   }
 }
 
@@ -156,10 +196,17 @@ searchSelect.onchange = handleSearch;
 (async () => {
   try {
     loadingIndicator.style.display = 'block';
-    const res = await fetch(LOTTO_DATA_URL);
-    if (!res.ok) throw new Error('데이터 파일을 불러올 수 없습니다.');
     
-    allLottoNumbers = await res.json();
+    // Try to fetch detailed data first
+    let response = await fetch(DETAILED_DATA_URL);
+    if (!response.ok) {
+        console.log('Detailed data not found, falling back to basic data.');
+        response = await fetch(BASIC_DATA_URL);
+    }
+    
+    if (!response.ok) throw new Error('데이터 파일을 불러올 수 없습니다.');
+    
+    allLottoNumbers = await response.json();
     allLottoNumbers.sort((a, b) => b.drwNo - a.drwNo);
     
     populateSearchList();
