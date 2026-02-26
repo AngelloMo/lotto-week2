@@ -86,17 +86,28 @@ function renderPagination(totalPages) {
     if (!latestDrawResponse.ok) {
         throw new Error(`HTTP error! status: ${latestDrawResponse.status} from ${GET_LATEST_DRAW_URL}`);
     }
-    const { latestDrwNo } = await latestDrawResponse.json();
+    
+    let latestDrwNo;
+    try {
+        const data = await latestDrawResponse.json();
+        latestDrwNo = data.latestDrwNo;
+    } catch (e) {
+        const text = await latestDrawResponse.text();
+        console.error("Failed to parse JSON. Response text:", text);
+        throw new Error(`Invalid JSON response: ${e.message}`);
+    }
+    
     console.log('Latest draw number:', latestDrwNo);
 
     if (latestDrwNo < 1) {
         throw new Error("Could not determine the latest draw number.");
     }
 
-    // Now fetch all numbers individually
-    console.log('Fetching all lottery data individually...');
+    // Now fetch latest 100 numbers individually (instead of all 1200+)
+    console.log('Fetching latest 100 lottery data individually...');
     const fetchPromises = [];
-    for (let i = latestDrwNo; i >= 1; i--) {
+    const fetchLimit = Math.max(1, latestDrwNo - 100);
+    for (let i = latestDrwNo; i >= fetchLimit; i--) {
       fetchPromises.push(getSingleLottoNumber(i));
     }
     const results = await Promise.all(fetchPromises);

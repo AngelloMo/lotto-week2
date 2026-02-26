@@ -4,31 +4,47 @@ const cors = require("cors")({ origin: true });
 
 // Function to find the latest draw number
 async function findLatestDrawNumber() {
-  let drwNo = 1200; // Start searching from a reasonably high number
-  let lastSuccessfulDrwNo = 0;
-
-  // Go up from the starting drwNo to find the latest existing one
-  // Limiting the loop to prevent excessive calls in case of unexpected API behavior
-  for (let i = 0; i < 200; i++) { // Check up to 200 draws after the starting point
+  // Lotto started on 2002-12-07
+  const startDate = new Date("2002-12-07T20:00:00+09:00");
+  const now = new Date();
+  const diffInMs = now - startDate;
+  const diffInWeeks = Math.floor(diffInMs / (1000 * 60 * 60 * 24 * 7));
+  
+  // The first draw (1st) was on 2002-12-07.
+  // So the estimated latest draw number is diffInWeeks + 1.
+  // We'll search around this estimate.
+  let estimatedDrwNo = diffInWeeks + 1;
+  
+  // Search backwards from the estimate + 1 to be safe
+  for (let drwNo = estimatedDrwNo + 1; drwNo > estimatedDrwNo - 5; drwNo--) {
     const apiUrl = `https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=${drwNo}`;
     try {
       const lottoResponse = await fetch(apiUrl);
       const data = await lottoResponse.json();
 
       if (data && data.returnValue === 'success') {
-        lastSuccessfulDrwNo = drwNo;
-        drwNo++;
-      } else {
-        // If we get an error or non-success, the previous one was the latest
-        break;
+        return drwNo;
       }
     } catch (error) {
-      // Log and break if there's a network error or JSON parsing error
-      console.error(`Error fetching drwNo ${drwNo} in findLatestDrawNumber:`, error);
-      break;
+      console.error(`Error fetching drwNo ${drwNo}:`, error);
     }
   }
-  return lastSuccessfulDrwNo;
+
+  // Fallback: search backwards from a known high number if the estimation fails
+  for (let drwNo = 1200; drwNo > 0; drwNo--) {
+      // This is a last resort and should ideally not be hit frequently
+      // In a real production app, you might want to cache the latest number.
+      // For now, let's just return the last successful one found.
+      const apiUrl = `https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=${drwNo}`;
+      try {
+        const lottoResponse = await fetch(apiUrl);
+        const data = await lottoResponse.json();
+        if (data && data.returnValue === 'success') return drwNo;
+      } catch (e) {}
+      if (drwNo < 1100) break; // Don't go too far back
+  }
+
+  return 0;
 }
 
 
