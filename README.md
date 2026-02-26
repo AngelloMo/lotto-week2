@@ -2,64 +2,60 @@
 
 This project fetches and displays historical lottery winning numbers.
 
-## Deployment to Cloudflare
+## 🎱 How to get ALL historical data (1 to 1160)
 
-If you are deploying to Cloudflare Pages, the backend functions (originally for Firebase) need to be handled by **Cloudflare Workers**.
+Due to server security policies, fetching all 1,160 rounds automatically from a script can be blocked. Follow these simple steps to get the full dataset yourself:
 
-### 1. Create a Cloudflare Worker
-
-Go to your Cloudflare Dashboard -> Workers & Pages -> Create Worker.
-
-### 2. Worker Code
-
-Use the following code for your worker (it acts as a proxy to avoid CORS issues and determine the latest draw):
+1.  Open [Donghang Lottery (동행복권) Official Site](https://www.dhlottery.co.kr/).
+2.  Press `F12` to open Developer Tools and click on the **Console** tab.
+3.  Copy and paste the entire script below and press **Enter**:
 
 ```javascript
-addEventListener('fetch', event => {
-  event.respondWith(handleRequest(event.request))
-})
-
-async function handleRequest(request) {
-  const url = new URL(request.url);
-  
-  if (url.pathname === '/getLatestDrawNumber') {
-    const latest = await findLatestDrawNumber();
-    return new Response(JSON.stringify({ latestDrwNo: latest }), {
-      headers: { 'content-type': 'application/json', 'Access-Control-Allow-Origin': '*' }
-    });
-  }
-
-  if (url.pathname === '/getSingleLottoNumber') {
-    const drwNo = url.searchParams.get('drwNo');
-    const apiUrl = `https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=${drwNo}`;
-    const response = await fetch(apiUrl);
-    const data = await response.json();
-    return new Response(JSON.stringify(data), {
-      headers: { 'content-type': 'application/json', 'Access-Control-Allow-Origin': '*' }
-    });
-  }
-
-  return new Response("Not Found", { status: 404 });
-}
-
-async function findLatestDrawNumber() {
-  const startDate = new Date("2002-12-07T20:00:00+09:00");
-  const now = new Date();
-  const diffInWeeks = Math.floor((now - startDate) / (1000 * 60 * 60 * 24 * 7));
-  let estimatedDrwNo = diffInWeeks + 1;
-
-  for (let drwNo = estimatedDrwNo + 1; drwNo > estimatedDrwNo - 5; drwNo--) {
-    const apiUrl = `https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=${drwNo}`;
-    const res = await fetch(apiUrl);
-    const data = await res.json();
-    if (data && data.returnValue === 'success') return drwNo;
-  }
-  return 1200; // Fallback
-}
+(async () => {
+    const allData = [];
+    const latestRound = 1160; 
+    console.log("🚀 Starting data collection... This will take about 2-3 minutes.");
+    
+    for (let i = latestRound; i >= 1; i--) {
+        try {
+            const res = await fetch(`https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=${i}`);
+            const data = await res.json();
+            if (data.returnValue === 'success') {
+                allData.push({
+                    drwNo: data.drwNo,
+                    drwNoDate: data.drwNoDate,
+                    drwtNo1: data.drwtNo1,
+                    drwtNo2: data.drwtNo2,
+                    drwtNo3: data.drwtNo3,
+                    drwtNo4: data.drwtNo4,
+                    drwtNo5: data.drwtNo5,
+                    drwtNo6: data.drwtNo6,
+                    bnusNo: data.bnusNo
+                });
+            }
+        } catch (e) {
+            console.error(`Error at round ${i}:`, e);
+        }
+        if (i % 100 === 0) console.log(`✅ Collected up to round ${i}...`);
+        // Small delay to be safe
+        await new Promise(r => setTimeout(r, 100));
+    }
+    
+    const blob = new Blob([JSON.stringify(allData, null, 2)], {type: 'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'lotto-data.json';
+    a.click();
+    console.log("🎉 SUCCESS! 'lotto-data.json' has been downloaded. Copy this file to your project folder.");
+})();
 ```
 
-### 3. Connect Worker to Pages
+4.  Once the download is complete, move the `lotto-data.json` file into this project folder (replacing the existing one).
+5.  Refresh your application!
 
-In your Cloudflare Pages project settings, go to **Functions** or **Routes** to ensure the `/getLatestDrawNumber` and `/getSingleLottoNumber` paths are routed to this worker, OR simply use the worker's URL in `main.js`.
-
-Currently, `main.js` uses relative paths which works if the Worker is bound to the same domain.
+## Features
+- **10 Items Per Page**: Efficiently browse history.
+- **Milestone Search**: Search for any specific draw number.
+- **Authentic Colors**: Lotto ball colors based on official number ranges.
+- **Reliable Local Source**: Works offline or without API connectivity once data is saved.
