@@ -3,12 +3,17 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Hello World</title>
+  <title>로또 역대 당첨번호</title>
+  <meta name="description" content="dhlottery.co.kr 사이트에서 로또 당첨번호를 가져와서 회차별로 당첨번호를 30개씩 보여주는 사이트입니다." />
+  <meta name="keywords" content="로또, lotto, 당첨번호, 역대당첨번호, 동행복권" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎱</text></svg>">
   <link href='/style.css' rel='stylesheet'>
 </head>
 <body>
-  <h1>Hello, world!</h1>
-  <button onclick="console.log('hello');">Press me</button>
+  <h1>로또 당첨번호</h1>
+  <div id="loading-indicator">Loading...</div>
+  <div id="lotto-numbers-container"></div>
+  <div id="pagination-container"></div>
   <script defer type="text/javascript" src="/main.js"></script>
 </body>
 </html>

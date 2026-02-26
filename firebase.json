@@ -1,0 +1,23 @@
+{
+  "functions": {
+    "source": "functions"
+  },
+  "hosting": {
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "/getLatestDrawNumber",
+        "function": "getLatestDrawNumber"
+      },
+      {
+        "source": "/getSingleLottoNumber",
+        "function": "getSingleLottoNumber"
+      }
+    ]
+  }
+}
