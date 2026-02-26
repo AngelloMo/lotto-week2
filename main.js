@@ -48,13 +48,14 @@ function switchView(viewName) {
 
   if (viewName === 'history') renderHistory(currentPage);
   if (viewName === 'recommend') renderRecommendations();
+  if (viewName === 'analysis') renderAnalysis();
 }
 
-navHistoryBtn.onclick = () => switchView('history');
-navSearchBtn.onclick = () => switchView('search');
-navRecommendBtn.onclick = () => switchView('recommend');
-navAnalysisBtn.onclick = () => switchView('analysis');
-navPerformanceBtn.onclick = () => switchView('performance');
+if (navHistoryBtn) navHistoryBtn.onclick = () => switchView('history');
+if (navSearchBtn) navSearchBtn.onclick = () => switchView('search');
+if (navRecommendBtn) navRecommendBtn.onclick = () => switchView('recommend');
+if (navAnalysisBtn) navAnalysisBtn.onclick = () => switchView('analysis');
+if (navPerformanceBtn) navPerformanceBtn.onclick = () => switchView('performance');
 
 // --- Helper Functions ---
 function getBallColorClass(num) {
@@ -155,6 +156,8 @@ function createLottoCard(data, showPrizes = false) {
           </div>
         `;
     }
+  } else if (showPrizes) {
+    prizeTableHtml = '<p class="info-msg">상세 당첨 정보가 없는 회차입니다.</p>';
   }
 
   element.innerHTML = `
@@ -244,8 +247,8 @@ function handleSearch() {
   }
 }
 
-searchButton.onclick = handleSearch;
-searchSelect.onchange = handleSearch;
+if (searchButton) searchButton.onclick = handleSearch;
+if (searchSelect) searchSelect.onchange = handleSearch;
 
 // --- Recommend View Logic ---
 function renderRecommendations() {
@@ -260,7 +263,7 @@ function renderRecommendations() {
   }
 }
 
-generateBtn.onclick = renderRecommendations;
+if (generateBtn) generateBtn.onclick = renderRecommendations;
 
 // --- Analysis View Logic ---
 function renderAnalysis() {
@@ -298,7 +301,7 @@ function renderAnalysis() {
     analysisContainer.appendChild(resultCard);
 }
 
-analysisGenerateBtn.onclick = renderAnalysis;
+if (analysisGenerateBtn) analysisGenerateBtn.onclick = renderAnalysis;
 
 // --- Performance View Logic ---
 function handlePerformance() {
@@ -318,6 +321,8 @@ function handlePerformance() {
                 drwNo: item.drwNo, 
                 date: item.drwNoDate, 
                 rank: res.rank,
+                matchedNumbers: res.matchedNumbers,
+                bonusMatched: res.bonusMatched,
                 winNums: [item.drwtNo1, item.drwtNo2, item.drwtNo3, item.drwtNo4, item.drwtNo5, item.drwtNo6, item.bnusNo]
             });
         }
@@ -331,15 +336,22 @@ function handlePerformance() {
     let baseBallsHtml = `<div class="numbers" style="justify-content:center; gap:8px; margin-bottom:20px;">` + baseNumbers.map(n => `<span class="${getBallColorClass(n)}">${n}</span>`).join('') + `</div>`;
     
     let listHtml = top5.length > 0 ? top5.map(r => {
-        const winBallsHtml = r.winNums.slice(0,6).map(n => `<span class="${getBallColorClass(n)}">${n}</span>`).join('');
-        const bonusBallHtml = `<span class="${getBallColorClass(r.winNums[6])}">${r.winNums[6]}</span>`;
+        // Highlight logic for the historical winning numbers
+        const winBallsHtml = r.winNums.slice(0,6).map(n => {
+            const isMatched = baseNumbers.includes(n);
+            return `<span class="${getBallColorClass(n)} ${isMatched ? 'matched' : ''}">${n}</span>`;
+        }).join('');
+        
+        const isBonusMatched = baseNumbers.includes(r.winNums[6]);
+        const bonusBallHtml = `<span class="${getBallColorClass(r.winNums[6])} ${isBonusMatched ? 'matched' : ''}">${r.winNums[6]}</span>`;
+        
         return `
             <div class="perf-item">
                 <div class="perf-top-row">
                     <div><span class="perf-round">제 ${r.drwNo}회</span> <span class="perf-date">${r.date}</span></div>
                     <div class="perf-rank">${r.rank}등</div>
                 </div>
-                <div class="perf-win-nums">
+                <div class="numbers" style="justify-content: center; gap: 4px; transform: scale(0.85); margin: 5px 0;">
                     ${winBallsHtml} <span class="plus-sign" style="font-size:1em;">+</span> ${bonusBallHtml}
                 </div>
             </div>
@@ -354,22 +366,55 @@ function handlePerformance() {
     performanceResultContainer.appendChild(card);
 }
 
-performanceButton.onclick = handlePerformance;
-performanceSelect.onchange = handlePerformance;
+if (performanceButton) performanceButton.onclick = handlePerformance;
+if (performanceSelect) performanceSelect.onchange = handlePerformance;
 
 // --- Initialization ---
 async function loadLottoData() {
   try {
     loadingIndicator.style.display = 'block';
-    let response = await fetch(DETAILED_DATA_URL + '?v=' + Date.now());
-    if (!response.ok) response = await fetch(BASIC_DATA_URL + '?v=' + Date.now());
-    allLottoNumbers = await response.json();
+    
+    let dataLoaded = false;
+    
+    // Attempt 1: Detailed Data
+    try {
+        const response = await fetch(DETAILED_DATA_URL + '?v=' + Date.now()); // Prevent caching
+        if (response.ok) {
+            allLottoNumbers = await response.json();
+            dataLoaded = true;
+            console.log('Detailed data loaded.');
+        }
+    } catch (e) {
+        console.warn('Detailed data fetch failed:', e);
+    }
+    
+    // Attempt 2: Basic Data (Fallback)
+    if (!dataLoaded) {
+        try {
+            const response = await fetch(BASIC_DATA_URL + '?v=' + Date.now());
+            if (response.ok) {
+                allLottoNumbers = await response.json();
+                dataLoaded = true;
+                console.log('Basic data loaded as fallback.');
+            }
+        } catch (e) {
+            console.error('Basic data fetch failed:', e);
+        }
+    }
+    
+    if (!dataLoaded || !allLottoNumbers || allLottoNumbers.length === 0) {
+        throw new Error('데이터 파일을 불러올 수 없습니다.');
+    }
+    
     allLottoNumbers.sort((a, b) => b.drwNo - a.drwNo);
+    
     populateDropdowns();
     renderHistory(1);
+    
     loadingIndicator.style.display = 'none';
   } catch (e) {
-    loadingIndicator.innerHTML = `<p class="error">데이터 로드 실패</p>`;
+    console.error('Initialization error:', e);
+    loadingIndicator.innerHTML = `<p class="error">데이터 로드 실패: ${e.message}</p>`;
   }
 }
 
