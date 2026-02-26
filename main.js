@@ -36,9 +36,9 @@ function switchView(viewName) {
   if (viewName === 'history') renderHistory(currentPage);
 }
 
-navHistoryBtn.onclick = () => switchView('history');
-navSearchBtn.onclick = () => switchView('search');
-navRecommendBtn.onclick = () => switchView('recommend');
+if (navHistoryBtn) navHistoryBtn.onclick = () => switchView('history');
+if (navSearchBtn) navSearchBtn.onclick = () => switchView('search');
+if (navRecommendBtn) navRecommendBtn.onclick = () => switchView('recommend');
 
 // --- Helper Functions ---
 function getBallColorClass(num) {
@@ -112,6 +112,8 @@ function createLottoCard(data, showPrizes = false) {
           </div>
         `;
     }
+  } else if (showPrizes) {
+    prizeTableHtml = '<p class="info-msg">상세 당첨 정보가 없는 회차입니다. 데이터를 확인해 주세요.</p>';
   }
 
   element.innerHTML = `
@@ -209,8 +211,8 @@ function handleSearch() {
   }
 }
 
-searchButton.onclick = handleSearch;
-searchSelect.onchange = handleSearch;
+if (searchButton) searchButton.onclick = handleSearch;
+if (searchSelect) searchSelect.onchange = handleSearch;
 
 // --- Recommend View Logic ---
 function generateRandomNumbers() {
@@ -239,10 +241,10 @@ function renderRecommendations() {
   }
 }
 
-generateBtn.onclick = renderRecommendations;
+if (generateBtn) generateBtn.onclick = renderRecommendations;
 
 // --- Initialization ---
-(async () => {
+async function loadLottoData() {
   try {
     loadingIndicator.style.display = 'block';
     
@@ -261,7 +263,9 @@ generateBtn.onclick = renderRecommendations;
     
     loadingIndicator.style.display = 'none';
   } catch (e) {
-    console.error(e);
-    loadingIndicator.innerHTML = `<p class="error">오류: ${e.message}</p>`;
+    console.error('Initialization error:', e);
+    loadingIndicator.innerHTML = `<p class="error">데이터 로드 실패: ${e.message}</p>`;
   }
-})();
+}
+
+loadLottoData();
