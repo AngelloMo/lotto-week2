@@ -19,18 +19,19 @@ h1 {
 .main-nav {
   display: flex;
   justify-content: center;
-  gap: 8px;
+  gap: 5px;
   margin-bottom: 20px;
   position: sticky;
   top: 0;
   background: #f4f7f9;
   padding: 10px 0;
   z-index: 100;
+  overflow-x: auto;
 }
 
 .main-nav button {
-  padding: 10px 12px;
-  font-size: 0.85em;
+  padding: 10px 8px;
+  font-size: 0.8em;
   font-weight: 600;
   border: 1px solid #ddd;
   background-color: #fff;
@@ -40,7 +41,8 @@ h1 {
   transition: all 0.2s ease;
   white-space: nowrap;
   flex: 1;
-  max-width: 110px;
+  min-width: 80px;
+  max-width: 100px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
@@ -74,7 +76,7 @@ h1 {
   border: 1px solid #ccc;
   border-radius: 8px;
   width: 100%;
-  font-size: 16px; /* Prevents iOS zoom on focus */
+  font-size: 16px;
   appearance: none;
   background: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") no-repeat right 10px center;
   background-color: white;
@@ -91,7 +93,7 @@ h1 {
 }
 
 /* Lotto Card & Numbers */
-.lotto-round {
+.lotto-round, .analysis-result {
   background-color: white;
   border-radius: 12px;
   padding: 15px;
@@ -198,16 +200,30 @@ h1 {
   font-size: 0.8em;
 }
 
-.total-info strong {
-  display: block;
-  margin-bottom: 5px;
-  color: #555;
+/* Analysis Styles */
+.best-rank-info {
+    text-align: center;
+    background: #e7f3ff;
+    padding: 15px;
+    border-radius: 10px;
+    margin-top: 15px;
+    border: 1px solid #1877f2;
 }
 
-.total-info .method-row {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 3px;
+.best-rank-info h4 {
+    margin: 0 0 5px;
+    color: #1877f2;
+}
+
+.rank-text {
+    font-size: 1.4em;
+    font-weight: bold;
+    color: #d32f2f;
+}
+
+.round-info {
+    font-size: 0.9em;
+    color: #666;
 }
 
 /* Pagination */
@@ -266,9 +282,6 @@ h1 {
     height: 38px;
     font-size: 0.9em;
   }
-  .prize-table {
-    font-size: 0.9em;
-  }
 }
 
 @media (min-width: 768px) {
@@ -276,14 +289,5 @@ h1 {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
     gap: 20px;
-  }
-  .search-container {
-    flex-direction: row;
-  }
-  .search-container select {
-    flex: 2;
-  }
-  .search-container button {
-    flex: 1;
   }
 }

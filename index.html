@@ -16,6 +16,7 @@
     <button id="nav-history" class="active">당첨결과 이력</button>
     <button id="nav-search">회차 검색</button>
     <button id="nav-recommend">번호 추천</button>
+    <button id="nav-analysis">분석 추천</button>
   </nav>
 
   <div id="loading-indicator">데이터를 불러오는 중...</div>
@@ -45,6 +46,16 @@
       <button id="generate-btn">새로운 번호 생성</button>
     </div>
     <div id="recommend-container"></div>
+  </section>
+
+  <!-- Analysis Recommend View -->
+  <section id="analysis-view" class="view-section" style="display: none;">
+    <div class="recommend-header">
+      <h2>AI 분석 추천 (1개)</h2>
+      <p>번호 1개를 생성하고 과거 모든 회차와 대조하여<br>최고 성적을 분석합니다.</p>
+      <button id="analysis-generate-btn">분석 번호 생성</button>
+    </div>
+    <div id="analysis-container"></div>
   </section>
 
   <script defer type="text/javascript" src="/main.js"></script>
