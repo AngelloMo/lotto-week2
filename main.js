@@ -86,7 +86,7 @@ function createLottoCard(data, showPrizes = false) {
           <tr>
             <th>순위</th>
             <th>당첨자 수</th>
-            <th>1게임당 당첨금액</th>
+            <th>당첨금액</th>
           </tr>
         </thead>
         <tbody>
@@ -103,17 +103,19 @@ function createLottoCard(data, showPrizes = false) {
 
     if (data.methods) {
         remarksHtml = `
-          <div class="total-info" style="flex-direction: column; align-items: flex-start; gap: 5px;">
+          <div class="total-info">
             <strong>[비고 - 1등 배출 방식]</strong>
-            <span>자동: ${data.methods.auto} / 수동: ${data.methods.manual} / 반자동: ${data.methods.semiAuto}</span>
-            <div style="width: 100%; display: flex; justify-content: space-between; margin-top: 5px;">
-                <span>총 판매액: ${formatCurrency(data.totSellamnt)}</span>
+            <div class="method-row"><span>자동</span> <span>${data.methods.auto}건</span></div>
+            <div class="method-row"><span>수동</span> <span>${data.methods.manual}건</span></div>
+            <div class="method-row"><span>반자동</span> <span>${data.methods.semiAuto}건</span></div>
+            <div class="method-row" style="margin-top:8px; border-top: 1px solid #eee; padding-top:5px;">
+                <strong>총 판매액</strong> <span>${formatCurrency(data.totSellamnt)}</span>
             </div>
           </div>
         `;
     }
   } else if (showPrizes) {
-    prizeTableHtml = '<p class="info-msg">상세 당첨 정보가 없는 회차입니다. 데이터를 확인해 주세요.</p>';
+    prizeTableHtml = '<p class="info-msg">상세 당첨 정보가 없는 회차입니다.</p>';
   }
 
   element.innerHTML = `
@@ -231,11 +233,11 @@ function renderRecommendations() {
     const card = document.createElement('div');
     card.classList.add('recommend-card');
     
-    let ballsHtml = gameNumbers.map(n => `<span class="${getBallColorClass(n)}">${n}</span>`).join('');
+    let ballsHtml = `<div class="numbers">` + gameNumbers.map(n => `<span class="${getBallColorClass(n)}">${n}</span>`).join('') + `</div>`;
     
     card.innerHTML = `
       <span class="game-label">조합 ${i}</span>
-      <div class="numbers">${ballsHtml}</div>
+      ${ballsHtml}
     `;
     recommendContainer.appendChild(card);
   }
@@ -248,14 +250,38 @@ async function loadLottoData() {
   try {
     loadingIndicator.style.display = 'block';
     
-    let response = await fetch(DETAILED_DATA_URL);
-    if (!response.ok) {
-        response = await fetch(BASIC_DATA_URL);
+    let dataLoaded = false;
+    
+    // Attempt 1: Detailed Data
+    try {
+        const response = await fetch(DETAILED_DATA_URL + '?v=' + Date.now()); // Prevent caching
+        if (response.ok) {
+            allLottoNumbers = await response.json();
+            dataLoaded = true;
+            console.log('Detailed data loaded.');
+        }
+    } catch (e) {
+        console.warn('Detailed data fetch failed:', e);
     }
     
-    if (!response.ok) throw new Error('데이터 파일을 불러올 수 없습니다.');
+    // Attempt 2: Basic Data (Fallback)
+    if (!dataLoaded) {
+        try {
+            const response = await fetch(BASIC_DATA_URL + '?v=' + Date.now());
+            if (response.ok) {
+                allLottoNumbers = await response.json();
+                dataLoaded = true;
+                console.log('Basic data loaded as fallback.');
+            }
+        } catch (e) {
+            console.error('Basic data fetch failed:', e);
+        }
+    }
     
-    allLottoNumbers = await response.json();
+    if (!dataLoaded || !allLottoNumbers || allLottoNumbers.length === 0) {
+        throw new Error('데이터 파일을 불러올 수 없습니다.');
+    }
+    
     allLottoNumbers.sort((a, b) => b.drwNo - a.drwNo);
     
     populateSearchList();

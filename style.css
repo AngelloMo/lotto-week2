@@ -1,136 +1,136 @@
+/* Mobile First Styles */
 body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background-color: #f0f2f5;
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background-color: #f4f7f9;
   color: #333;
   margin: 0;
-  padding: 10px; /* Reduced for mobile */
+  padding: 10px;
+  line-height: 1.5;
 }
 
 h1 {
   text-align: center;
   color: #1877f2;
-  margin-bottom: 20px;
-  font-size: 1.8em;
+  margin: 15px 0 20px;
+  font-size: 1.5em;
 }
 
-/* Navigation Styles */
+/* Navigation - Better for touch */
 .main-nav {
   display: flex;
   justify-content: center;
-  gap: 5px;
+  gap: 8px;
   margin-bottom: 20px;
-  overflow-x: auto; /* Allow horizontal scroll if needed on very small screens */
-  padding-bottom: 10px;
+  position: sticky;
+  top: 0;
+  background: #f4f7f9;
+  padding: 10px 0;
+  z-index: 100;
 }
 
 .main-nav button {
-  padding: 10px 15px;
-  font-size: 0.9em;
-  font-weight: bold;
-  border: none;
+  padding: 10px 12px;
+  font-size: 0.85em;
+  font-weight: 600;
+  border: 1px solid #ddd;
   background-color: #fff;
-  color: #666;
+  color: #555;
   border-radius: 20px;
   cursor: pointer;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
   white-space: nowrap;
+  flex: 1;
+  max-width: 110px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
 .main-nav button.active {
   background-color: #1877f2;
   color: white;
+  border-color: #1877f2;
 }
 
-/* Section Styles */
+/* Section Containers */
 .view-section {
-  max-width: 1000px;
+  width: 100%;
+  max-width: 800px;
   margin: 0 auto;
 }
 
+/* Search Controls */
 .search-container {
   display: flex;
-  flex-direction: column; /* Stack on mobile */
-  align-items: center;
-  margin-bottom: 20px;
+  flex-direction: column;
   gap: 10px;
   background: white;
   padding: 15px;
-  border-radius: 10px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  margin-bottom: 20px;
 }
 
 .search-container select {
   padding: 12px;
-  border: 1px solid #ddd;
-  border-radius: 5px;
-  width: 100%; /* Full width on mobile */
-  max-width: 300px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  width: 100%;
+  font-size: 16px; /* Prevents iOS zoom on focus */
+  appearance: none;
+  background: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") no-repeat right 10px center;
   background-color: white;
-  font-size: 1em;
 }
 
 .search-container button {
-  padding: 12px 30px;
+  padding: 12px;
   background-color: #1877f2;
   color: white;
   border: none;
-  border-radius: 5px;
-  cursor: pointer;
+  border-radius: 8px;
   font-weight: bold;
-  width: 100%;
-  max-width: 300px;
+  font-size: 1em;
 }
 
-#lotto-numbers-container, #search-result-container {
-  display: grid;
-  grid-template-columns: 1fr; /* Default to 1 column for mobile */
-  gap: 15px;
-}
-
-@media (min-width: 768px) {
-  #lotto-numbers-container {
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  }
-  .search-container {
-    flex-direction: row;
-  }
-}
-
+/* Lotto Card & Numbers */
 .lotto-round {
   background-color: white;
-  border-radius: 8px;
+  border-radius: 12px;
   padding: 15px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  width: 100%;
-  box-sizing: border-box;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+  margin-bottom: 15px;
 }
 
 .lotto-round h3 {
-  margin: 0 0 10px;
+  margin: 0 0 5px;
   color: #1877f2;
   font-size: 1.1em;
+}
+
+.lotto-round p {
+  margin: 0 0 15px;
+  font-size: 0.85em;
+  color: #777;
 }
 
 .numbers {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 10px;
+  margin: 10px 0 20px;
+  gap: 4px;
 }
 
 .numbers span {
-  display: inline-block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 32px;
   height: 32px;
-  line-height: 32px;
-  text-align: center;
   border-radius: 50%;
   color: white;
   font-weight: bold;
-  font-size: 0.85em;
-  background-color: #fbc02d;
-  text-shadow: 0px 1px 2px rgba(0,0,0,0.3);
+  font-size: 0.8em;
+  background-color: #fbc02d; /* 1-10 Yellow */
+  box-shadow: inset -2px -2px 4px rgba(0,0,0,0.2);
 }
 
 .num-blue { background-color: #1976d2 !important; }
@@ -141,89 +141,149 @@ h1 {
 .plus-sign {
   font-size: 1.2em;
   font-weight: bold;
-  color: #666;
+  color: #999;
+  background: none !important;
+  box-shadow: none !important;
+  width: auto !important;
 }
 
-/* Recommendation View Styles */
-.recommend-header {
+/* Prize Table - Mobile Optimized */
+.prize-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+  font-size: 0.8em;
+  border: 1px solid #eee;
+}
+
+.prize-table th {
+  background-color: #f8f9fa;
+  color: #666;
+  padding: 8px 4px;
+  border-bottom: 2px solid #eee;
   text-align: center;
-  margin-bottom: 20px;
-  background: white;
-  padding: 20px;
-  border-radius: 10px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
-.recommend-header h2 {
+.prize-table td {
+  padding: 10px 4px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.prize-table tr td:first-child {
+  font-weight: bold;
+  text-align: center;
+  background-color: #fafafa;
+  width: 45px;
+}
+
+.winners-count {
+  text-align: center;
   color: #1877f2;
-  margin-top: 0;
 }
 
-#generate-btn {
-  padding: 15px 40px;
-  font-size: 1.1em;
+.prize-amount {
+  text-align: right;
+  color: #d32f2f;
   font-weight: bold;
-  background-color: #388e3c;
-  color: white;
-  border: none;
-  border-radius: 30px;
-  cursor: pointer;
-  margin-top: 10px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-  transition: transform 0.1s;
+  padding-right: 8px !important;
 }
 
-#generate-btn:active {
-  transform: scale(0.95);
+/* Remarks & Footer Info */
+.total-info {
+  margin-top: 15px;
+  padding: 12px;
+  background-color: #fdfdfd;
+  border: 1px dashed #ddd;
+  border-radius: 8px;
+  font-size: 0.8em;
 }
 
-.recommend-card {
-  background: white;
-  border-radius: 15px;
-  padding: 20px;
-  margin-bottom: 15px;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.05);
-  border-left: 5px solid #1877f2;
-}
-
-.recommend-card .game-label {
-  font-weight: bold;
-  color: #666;
-  margin-bottom: 10px;
+.total-info strong {
   display: block;
+  margin-bottom: 5px;
+  color: #555;
 }
 
+.total-info .method-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 3px;
+}
+
+/* Pagination */
 #pagination-container {
   display: flex;
   justify-content: center;
-  margin-top: 30px;
-  margin-bottom: 30px;
-  gap: 3px;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 20px 0 40px;
 }
 
 #pagination-container button {
-  padding: 8px 12px;
+  min-width: 35px;
+  height: 35px;
+  padding: 0 5px;
   font-size: 0.85em;
-  border: 1px solid #1877f2;
+  border: 1px solid #ddd;
   background: white;
-  color: #1877f2;
-  border-radius: 5px;
+  color: #555;
+  border-radius: 4px;
 }
 
 #pagination-container button.active {
   background: #1877f2;
   color: white;
+  border-color: #1877f2;
 }
 
-#loading-indicator {
+/* Recommendations */
+.recommend-header {
   text-align: center;
-  font-size: 1.2em;
-  margin: 50px;
-  color: #1877f2;
-}
-
-.error {
-  text-align: center;
-  color: #d32f2f;
   padding: 20px;
+  background: white;
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+.recommend-card {
+  background: white;
+  border-radius: 12px;
+  padding: 15px;
+  margin-bottom: 12px;
+  border-left: 4px solid #1877f2;
+}
+
+.game-label {
+  font-size: 0.85em;
+  color: #888;
+  font-weight: bold;
+}
+
+/* Media Queries for larger screens */
+@media (min-width: 480px) {
+  .numbers span {
+    width: 38px;
+    height: 38px;
+    font-size: 0.9em;
+  }
+  .prize-table {
+    font-size: 0.9em;
+  }
+}
+
+@media (min-width: 768px) {
+  #lotto-numbers-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 20px;
+  }
+  .search-container {
+    flex-direction: row;
+  }
+  .search-container select {
+    flex: 2;
+  }
+  .search-container button {
+    flex: 1;
+  }
 }
