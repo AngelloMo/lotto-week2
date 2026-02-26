@@ -93,13 +93,19 @@ h1 {
   justify-content: center;
 }
 
+#search-view #search-result-container {
+    max-width: 600px;
+    margin: 20px auto;
+    display: block;
+}
+
 .lotto-round {
   background-color: white;
   border-radius: 8px;
   padding: 20px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   width: 100%;
-  max-width: 400px;
+  box-sizing: border-box;
 }
 
 .lotto-round h3 {
@@ -112,6 +118,7 @@ h1 {
   justify-content: space-around;
   align-items: center;
   margin-top: 15px;
+  margin-bottom: 20px;
 }
 
 .numbers span {
@@ -136,6 +143,54 @@ h1 {
   font-size: 1.5em;
   font-weight: bold;
   color: #666;
+}
+
+/* Prize Table Styles */
+.prize-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  font-size: 0.9em;
+}
+
+.prize-table th, .prize-table td {
+  border: 1px solid #eee;
+  padding: 10px;
+}
+
+.prize-table th {
+  background-color: #f8f9fa;
+  text-align: center;
+  color: #666;
+  font-weight: 600;
+}
+
+.prize-table tr td:first-child {
+  text-align: center;
+  font-weight: bold;
+  background-color: #f8f9fa;
+  width: 60px;
+}
+
+.winners-count {
+  text-align: center;
+  color: #1877f2;
+}
+
+.prize-amount {
+  text-align: right;
+  color: #d32f2f;
+  font-weight: bold;
+}
+
+.total-info {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px dashed #ddd;
+    font-size: 0.85em;
+    color: #777;
+    display: flex;
+    justify-content: space-between;
 }
 
 #pagination-container {
@@ -174,11 +229,17 @@ h1 {
   color: #1877f2;
 }
 
-.error {
+.error, .info-msg {
   text-align: center;
   color: #d32f2f;
-  grid-column: 1 / -1;
   padding: 20px;
+}
+
+.info-msg {
+    color: #666;
+    background: #f8f9fa;
+    border-radius: 5px;
+    font-size: 0.9em;
 }
 
 @media (max-width: 600px) {

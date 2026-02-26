@@ -73,7 +73,11 @@ function createLottoCard(data, showPrizes = false) {
   `;
 
   let prizeTableHtml = '';
+  let totalInfoHtml = '';
+
   if (showPrizes && data.prizes && Array.isArray(data.prizes) && data.prizes.length >= 5) {
+    const totalWinners = data.prizes.reduce((sum, p) => sum + parseInt(p.winners || 0), 0);
+    
     prizeTableHtml = `
       <table class="prize-table">
         <thead>
@@ -94,6 +98,13 @@ function createLottoCard(data, showPrizes = false) {
         </tbody>
       </table>
     `;
+
+    totalInfoHtml = `
+      <div class="total-info">
+        <span>총 당첨자: ${formatCount(totalWinners)}</span>
+        <span>총 판매액: ${formatCurrency(data.totSellamnt)}</span>
+      </div>
+    `;
   } else if (showPrizes) {
     prizeTableHtml = '<p class="info-msg">상세 당첨 정보가 없는 회차입니다. README의 스크립트로 데이터를 업데이트해 주세요.</p>';
   }
@@ -103,6 +114,7 @@ function createLottoCard(data, showPrizes = false) {
     <p>추첨일: ${data.drwNoDate}</p>
     ${numbersHtml}
     ${prizeTableHtml}
+    ${totalInfoHtml}
   `;
   return element;
 }
