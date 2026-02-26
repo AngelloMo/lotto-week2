@@ -10,6 +10,7 @@ const recommendView = document.getElementById('recommend-view');
 const analysisView = document.getElementById('analysis-view');
 const performanceView = document.getElementById('performance-view');
 const statsView = document.getElementById('stats-view');
+const collisionView = document.getElementById('collision-view');
 
 const lottoNumbersContainer = document.getElementById('lotto-numbers-container');
 const paginationContainer = document.getElementById('pagination-container');
@@ -24,6 +25,7 @@ const performanceSelect = document.getElementById('performance-select');
 const performanceButton = document.getElementById('performance-button');
 const performanceResultContainer = document.getElementById('performance-result-container');
 const statsContainer = document.getElementById('stats-container');
+const collisionContainer = document.getElementById('collision-container');
 
 const navHistoryBtn = document.getElementById('nav-history');
 const navSearchBtn = document.getElementById('nav-search');
@@ -31,28 +33,24 @@ const navRecommendBtn = document.getElementById('nav-recommend');
 const navAnalysisBtn = document.getElementById('nav-analysis');
 const navPerformanceBtn = document.getElementById('nav-performance');
 const navStatsBtn = document.getElementById('nav-stats');
+const navCollisionBtn = document.getElementById('nav-collision');
 
 let allLottoNumbers = [];
 let currentPage = 1;
 
 // --- View Toggling ---
 function switchView(viewName) {
-  historyView.style.display = viewName === 'history' ? 'block' : 'none';
-  searchView.style.display = viewName === 'search' ? 'block' : 'none';
-  recommendView.style.display = viewName === 'recommend' ? 'block' : 'none';
-  analysisView.style.display = viewName === 'analysis' ? 'block' : 'none';
-  performanceView.style.display = viewName === 'performance' ? 'block' : 'none';
-  statsView.style.display = viewName === 'stats' ? 'block' : 'none';
+  [historyView, searchView, recommendView, analysisView, performanceView, statsView, collisionView].forEach(v => v.style.display = 'none');
+  const viewMap = { history: historyView, search: searchView, recommend: recommendView, analysis: analysisView, performance: performanceView, stats: statsView, collision: collisionView };
+  if (viewMap[viewName]) viewMap[viewName].style.display = 'block';
 
-  navHistoryBtn.classList.toggle('active', viewName === 'history');
-  navSearchBtn.classList.toggle('active', viewName === 'search');
-  navRecommendBtn.classList.toggle('active', viewName === 'recommend');
-  navAnalysisBtn.classList.toggle('active', viewName === 'analysis');
-  navPerformanceBtn.classList.toggle('active', viewName === 'performance');
-  navStatsBtn.classList.toggle('active', viewName === 'stats');
+  [navHistoryBtn, navSearchBtn, navRecommendBtn, navAnalysisBtn, navPerformanceBtn, navStatsBtn, navCollisionBtn].forEach(b => b.classList.remove('active'));
+  const btnMap = { history: navHistoryBtn, search: navSearchBtn, recommend: navRecommendBtn, analysis: navAnalysisBtn, performance: navPerformanceBtn, stats: navStatsBtn, collision: navCollisionBtn };
+  if (btnMap[viewName]) btnMap[viewName].classList.add('active');
 
   if (viewName === 'history') renderHistory(currentPage);
   if (viewName === 'stats') renderStats();
+  if (viewName === 'collision') renderCollisions();
 }
 
 navHistoryBtn.onclick = () => switchView('history');
@@ -61,6 +59,7 @@ navRecommendBtn.onclick = () => switchView('recommend');
 navAnalysisBtn.onclick = () => switchView('analysis');
 navPerformanceBtn.onclick = () => switchView('performance');
 navStatsBtn.onclick = () => switchView('stats');
+navCollisionBtn.onclick = () => switchView('collision');
 
 // --- Helper Functions ---
 function getBallColorClass(num) {
@@ -109,62 +108,26 @@ function checkRank(myNumbers, historyItem) {
 function createLottoCard(data, showPrizes = false) {
   const element = document.createElement('div');
   element.classList.add('lotto-round');
-  
-  let numbersHtml = `
-    <div class="numbers">
-      <span class="${getBallColorClass(data.drwtNo1)}">${data.drwtNo1}</span>
-      <span class="${getBallColorClass(data.drwtNo2)}">${data.drwtNo2}</span>
-      <span class="${getBallColorClass(data.drwtNo3)}">${data.drwtNo3}</span>
-      <span class="${getBallColorClass(data.drwtNo4)}">${data.drwtNo4}</span>
-      <span class="${getBallColorClass(data.drwtNo5)}">${data.drwtNo5}</span>
-      <span class="${getBallColorClass(data.drwtNo6)}">${data.drwtNo6}</span>
-      <span class="plus-sign">+</span>
-      <span class="bonus ${getBallColorClass(data.bnusNo)}">${data.bnusNo}</span>
-    </div>
-  `;
-
+  let numbersHtml = `<div class="numbers">` + [data.drwtNo1, data.drwtNo2, data.drwtNo3, data.drwtNo4, data.drwtNo5, data.drwtNo6].map(n => `<span class="${getBallColorClass(n)}">${n}</span>`).join('') + `<span class="plus-sign">+</span><span class="bonus ${getBallColorClass(data.bnusNo)}">${data.bnusNo}</span></div>`;
   let prizeTableHtml = '';
   let remarksHtml = '';
-
-  if (showPrizes && data.prizes && Array.isArray(data.prizes) && data.prizes.length >= 5) {
-    prizeTableHtml = `
-      <table class="prize-table">
-        <thead><tr><th>순위</th><th>당첨자 수</th><th>당첨금액</th></tr></thead>
-        <tbody>
-          ${data.prizes.map((p, i) => `
-            <tr><td>${i + 1}등</td><td class="winners-count">${formatCount(p.winners)}</td><td class="prize-amount">${formatCurrency(p.amount)}</td></tr>
-          `).join('')}
-        </tbody>
-      </table>
-    `;
-
+  if (showPrizes && data.prizes && data.prizes.length >= 5) {
+    prizeTableHtml = `<table class="prize-table"><thead><tr><th>순위</th><th>당첨자 수</th><th>당첨금액</th></tr></thead><tbody>` + data.prizes.map((p, i) => `<tr><td>${i + 1}등</td><td class="winners-count">${formatCount(p.winners)}</td><td class="prize-amount">${formatCurrency(p.amount)}</td></tr>`).join('') + `</tbody></table>`;
     if (data.methods) {
-        remarksHtml = `
-          <div class="total-info">
-            <strong>[비고 - 1등 배출 방식]</strong>
-            <div class="method-row"><span>자동</span> <span>${data.methods.auto}건</span></div>
-            <div class="method-row"><span>수동</span> <span>${data.methods.manual}건</span></div>
-            <div class="method-row"><span>반자동</span> <span>${data.methods.semiAuto}건</span></div>
-            <div class="method-row" style="margin-top:8px; border-top: 1px solid #eee; padding-top:5px;">
-                <strong>총 판매액</strong> <span>${formatCurrency(data.totSellamnt)}</span>
-            </div>
-          </div>
-        `;
+        remarksHtml = `<div class="total-info"><strong>[비고 - 1등 배출 방식]</strong><div class="method-row"><span>자동</span> <span>${data.methods.auto}건</span></div><div class="method-row"><span>수동</span> <span>${data.methods.manual}건</span></div><div class="method-row"><span>반자동</span> <span>${data.methods.semiAuto}건</span></div><div class="method-row" style="margin-top:8px; border-top: 1px solid #eee; padding-top:5px;"><strong>총 판매액</strong> <span>${formatCurrency(data.totSellamnt)}</span></div></div>`;
     }
   }
-
   element.innerHTML = `<h3>${data.drwNo}회 당첨결과</h3><p>추첨일: ${data.drwNoDate}</p>${numbersHtml}${prizeTableHtml}${remarksHtml}`;
   return element;
 }
 
-// --- History View Logic ---
+// --- History View ---
 function renderHistory(page) {
   currentPage = page;
   lottoNumbersContainer.innerHTML = '';
   const start = (page - 1) * ITEMS_PER_PAGE;
   const end = start + ITEMS_PER_PAGE;
-  const numbersToRender = allLottoNumbers.slice(start, end);
-  numbersToRender.forEach(data => lottoNumbersContainer.appendChild(createLottoCard(data, false)));
+  allLottoNumbers.slice(start, end).forEach(data => lottoNumbersContainer.appendChild(createLottoCard(data, false)));
   updatePagination();
 }
 
@@ -224,7 +187,7 @@ function renderRecommendations() {
     recommendContainer.appendChild(card);
   }
 }
-if (generateBtn) generateBtn.onclick = renderRecommendations;
+generateBtn.onclick = renderRecommendations;
 
 // --- Analysis View ---
 function renderAnalysis() {
@@ -245,14 +208,14 @@ function renderAnalysis() {
     resultCard.classList.add('analysis-result');
     let ballsHtml = `<div class="numbers">` + myNumbers.map(n => {
         const isMatched = bestMatchDetails && bestMatchDetails.matchedNumbers.includes(n);
-        const isBonusMatched = bestMatchDetails && bestMatchDetails.bonusMatched && n === bestRound.bnusNo;
+        const isBonusMatched = bestMatchDetails && (bestMatchDetails.bonusMatched || (bestMatchDetails.rank === 2 && n === bestRound.bnusNo));
         return `<span class="${getBallColorClass(n)} ${isMatched || isBonusMatched ? 'matched' : ''}">${n}</span>`;
     }).join('') + `</div>`;
     let rankHtml = bestRound ? `<div class="best-rank-info"><h4>🎉 과거 최고 성적: <span class="rank-text">${bestRank}등</span></h4><p class="round-info">제 ${bestRound.drwNo}회차 (${bestRound.drwNoDate})</p></div>` : `<div class="best-rank-info"><h4>😅 성적 없음</h4></div>`;
     resultCard.innerHTML = `<span class="game-label">분석된 추천 번호</span>${ballsHtml}${rankHtml}`;
     analysisContainer.appendChild(resultCard);
 }
-if (analysisGenerateBtn) analysisGenerateBtn.onclick = renderAnalysis;
+analysisGenerateBtn.onclick = renderAnalysis;
 
 // --- Performance View ---
 function handlePerformance() {
@@ -276,68 +239,100 @@ function handlePerformance() {
     const top5 = results.slice(0, 5);
     const card = document.createElement('div');
     card.classList.add('performance-card');
+    let baseBallsHtml = `<div class="numbers" style="justify-content:center; gap:8px; margin-bottom:20px;">` + baseNumbers.map(n => `<span class="${getBallColorClass(n)}">${n}</span>`).join('') + `</div>`;
     let listHtml = top5.length > 0 ? top5.map(r => {
         const winBallsHtml = r.winNums.slice(0,6).map(n => `<span class="${getBallColorClass(n)} ${baseNumbers.includes(n) ? 'matched' : ''}">${n}</span>`).join('');
         const isBonusMatched = baseNumbers.includes(r.winNums[6]);
         const bonusBallHtml = `<span class="${getBallColorClass(r.winNums[6])} ${isBonusMatched ? 'matched' : ''}">${r.winNums[6]}</span>`;
         return `<div class="perf-item"><div class="perf-top-row"><div><span class="perf-round">제 ${r.drwNo}회</span> <span class="perf-date">${r.date}</span></div><div class="perf-rank">${r.rank}등</div></div><div class="numbers" style="justify-content:center; gap:4px; transform:scale(0.85); margin:5px 0;">${winBallsHtml} <span class="plus-sign" style="font-size:1em;">+</span> ${bonusBallHtml}</div></div>`;
     }).join('') : `<p class="info-msg" style="text-align:center;">이전 3개월 동안 당첨 이력이 없습니다.</p>`;
-    card.innerHTML = `<h3 style="text-align:center; font-size:1em;">제 ${selectedRound}회 번호의 이전 3개월 최고 성적</h3>${listHtml}`;
+    card.innerHTML = `<h3 style="text-align:center; font-size:1em;">제 ${selectedRound}회 번호의 이전 3개월 최고 성적</h3>${baseBallsHtml}${listHtml}`;
     performanceResultContainer.appendChild(card);
 }
-if (performanceButton) performanceButton.onclick = handlePerformance;
-if (performanceSelect) performanceSelect.onchange = handlePerformance;
+performanceButton.onclick = handlePerformance;
+performanceSelect.onchange = handlePerformance;
 
-// --- Stats View Logic ---
+// --- Stats View ---
 function renderStats() {
     statsContainer.innerHTML = '<p style="text-align:center;">분석 중입니다... 잠시만 기다려주세요.</p>';
-    
-    // Use setTimeout to allow the UI to show the loading message
     setTimeout(() => {
         const counts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 0: 0 };
-        const dataSorted = [...allLottoNumbers].sort((a, b) => a.drwNo - b.drwNo); // Chronological
-        
+        const dataSorted = [...allLottoNumbers].sort((a, b) => a.drwNo - b.drwNo);
         const startIndex = dataSorted.findIndex(d => d.drwNo >= 500);
         if (startIndex === -1) return;
-
         for (let i = startIndex; i < dataSorted.length; i++) {
             const current = dataSorted[i];
             const myNumbers = [current.drwtNo1, current.drwtNo2, current.drwtNo3, current.drwtNo4, current.drwtNo5, current.drwtNo6];
             let bestRank = 99;
-
-            // Check against all previous draws
             for (let j = 0; j < i; j++) {
                 const prev = dataSorted[j];
                 const res = checkRank(myNumbers, prev);
-                if (res.rank > 0 && res.rank < bestRank) {
-                    bestRank = res.rank;
-                }
+                if (res.rank > 0 && res.rank < bestRank) bestRank = res.rank;
             }
-            
             counts[bestRank === 99 ? 0 : bestRank]++;
         }
-
         const total = dataSorted.length - startIndex;
         const maxCount = Math.max(...Object.values(counts));
-
         let html = `<div class="stats-card"><h3>성적 분포 결과 (대상: ${total}개 회차)</h3><div class="histogram">`;
         [1, 2, 3, 4, 5, 0].forEach(rank => {
             const label = rank === 0 ? '꽝' : `${rank}등`;
             const count = counts[rank];
             const percent = ((count / total) * 100).toFixed(1);
             const barWidth = ((count / maxCount) * 100).toFixed(1);
+            html += `<div class="hist-row"><div class="hist-label">${label}</div><div class="hist-bar-container"><div class="hist-bar" style="width: ${barWidth}%"></div><div class="hist-value">${count}건 (${percent}%)</div></div></div>`;
+        });
+        html += '</div></div>';
+        statsContainer.innerHTML = html;
+    }, 100);
+}
+
+// --- Collision View Logic ---
+function renderCollisions() {
+    collisionContainer.innerHTML = '<p style="text-align:center;">중복 데이터를 분석하고 있습니다... (약 5-10초 소요)</p>';
+    setTimeout(() => {
+        const collisions = [];
+        const dataSorted = [...allLottoNumbers].sort((a, b) => a.drwNo - b.drwNo);
+        
+        for (let i = 0; i < dataSorted.length; i++) {
+            const current = dataSorted[i];
+            const myNumbers = [current.drwtNo1, current.drwtNo2, current.drwtNo3, current.drwtNo4, current.drwtNo5, current.drwtNo6];
+            
+            for (let j = 0; j < i; j++) {
+                const prev = dataSorted[j];
+                const res = checkRank(myNumbers, prev);
+                if (res.rank === 1 || res.rank === 2 || res.rank === 3) {
+                    collisions.push({ roundA: prev, roundB: current, rank: res.rank, matched: res.matchedNumbers });
+                }
+            }
+        }
+
+        collisions.sort((a, b) => a.rank - b.rank || b.roundB.drwNo - a.roundB.drwNo);
+
+        if (collisions.length === 0) {
+            collisionContainer.innerHTML = '<p class="info-msg">역대 3등 이내 중복 당첨 사례가 없습니다.</p>';
+            return;
+        }
+
+        let html = '';
+        collisions.forEach(c => {
+            const ballsA = [c.roundA.drwtNo1, c.roundA.drwtNo2, c.roundA.drwtNo3, c.roundA.drwtNo4, c.roundA.drwtNo5, c.roundA.drwtNo6].map(n => `<span class="${getBallColorClass(n)} ${c.matched.includes(n) ? 'matched' : ''}">${n}</span>`).join('');
+            const ballsB = [c.roundB.drwtNo1, c.roundB.drwtNo2, c.roundB.drwtNo3, c.roundB.drwtNo4, c.roundB.drwtNo5, c.roundB.drwtNo6].map(n => `<span class="${getBallColorClass(n)} ${c.matched.includes(n) ? 'matched' : ''}">${n}</span>`).join('');
+            
             html += `
-                <div class="hist-row">
-                    <div class="hist-label">${label}</div>
-                    <div class="hist-bar-container">
-                        <div class="hist-bar" style="width: ${barWidth}%"></div>
-                        <div class="hist-value">${count}건 (${percent}%)</div>
+                <div class="collision-card">
+                    <div class="collision-title"><span>과거 ${c.rank}등 당첨 사례</span> <span class="perf-rank">${c.rank}등</span></div>
+                    <div class="collision-item">
+                        <div class="round-info">먼저 나온 회차: 제 ${c.roundA.drwNo}회 (${c.roundA.drwNoDate})</div>
+                        <div class="numbers" style="transform:scale(0.85); margin:5px 0;">${ballsA}</div>
+                    </div>
+                    <div class="collision-item">
+                        <div class="round-info">나중에 나온 회차: 제 ${c.roundB.drwNo}회 (${c.roundB.drwNoDate})</div>
+                        <div class="numbers" style="transform:scale(0.85); margin:5px 0;">${ballsB}</div>
                     </div>
                 </div>
             `;
         });
-        html += '</div></div>';
-        statsContainer.innerHTML = html;
+        collisionContainer.innerHTML = html;
     }, 100);
 }
 
@@ -347,12 +342,14 @@ async function loadLottoData() {
     loadingIndicator.style.display = 'block';
     let response = await fetch(DETAILED_DATA_URL + '?v=' + Date.now());
     if (!response.ok) response = await fetch(BASIC_DATA_URL + '?v=' + Date.now());
+    if (!response.ok) throw new Error('데이터 파일을 불러올 수 없습니다.');
     allLottoNumbers = await response.json();
     allLottoNumbers.sort((a, b) => b.drwNo - a.drwNo);
     populateDropdowns();
     renderHistory(1);
     loadingIndicator.style.display = 'none';
   } catch (e) {
+    console.error('Initialization error:', e);
     loadingIndicator.innerHTML = `<p class="error">데이터 로드 실패</p>`;
   }
 }
