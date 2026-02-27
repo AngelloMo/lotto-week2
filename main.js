@@ -10,6 +10,7 @@ const recommendView = document.getElementById('recommend-view');
 const analysisView = document.getElementById('analysis-view');
 const aiProView = document.getElementById('ai-pro-view');
 const manualCheckView = document.getElementById('manual-check-view');
+const photoView = document.getElementById('photo-view');
 const simulationView = document.getElementById('simulation-view');
 const performanceView = document.getElementById('performance-view');
 const statsView = document.getElementById('stats-view');
@@ -43,12 +44,23 @@ const statsRecentContainer = document.getElementById('stats-recent-container');
 const collisionContainer = document.getElementById('collision-container');
 const collisionStatsContainer = document.getElementById('collision-stats-container');
 
+// Photo Analysis Elements
+const photoInput = document.getElementById('photo-input');
+const uploadArea = document.getElementById('upload-area');
+const photoPreview = document.getElementById('photo-preview');
+const photoAnalyzeBtn = document.getElementById('photo-analyze-btn');
+const ocrProgressContainer = document.getElementById('ocr-progress-container');
+const ocrProgressBar = document.getElementById('ocr-progress-bar');
+const ocrStatusText = document.getElementById('ocr-status-text');
+const uploadPlaceholder = document.getElementById('upload-placeholder');
+
 const navHistoryBtn = document.getElementById('nav-history');
 const navSearchBtn = document.getElementById('nav-search');
 const navRecommendBtn = document.getElementById('nav-recommend');
 const navAnalysisBtn = document.getElementById('nav-analysis');
 const navAiProBtn = document.getElementById('nav-ai-pro');
 const navManualCheckBtn = document.getElementById('nav-manual-check');
+const navPhotoBtn = document.getElementById('nav-photo');
 const navSimulationBtn = document.getElementById('nav-simulation');
 const navPerformanceBtn = document.getElementById('nav-performance');
 const navStatsBtn = document.getElementById('nav-stats');
@@ -62,12 +74,12 @@ let manualSelectedNumbers = [];
 
 // --- View Toggling ---
 function switchView(viewName) {
-  [historyView, searchView, recommendView, analysisView, aiProView, manualCheckView, simulationView, performanceView, statsView, statsRecentView, collisionView, collisionStatsView].forEach(v => { if(v) v.style.display = 'none'; });
-  const viewMap = { history: historyView, search: searchView, recommend: recommendView, analysis: analysisView, 'ai-pro': aiProView, 'manual-check': manualCheckView, simulation: simulationView, performance: performanceView, stats: statsView, 'stats-recent': statsRecentView, collision: collisionView, 'collision-stats': collisionStatsView };
+  [historyView, searchView, recommendView, analysisView, aiProView, manualCheckView, photoView, simulationView, performanceView, statsView, statsRecentView, collisionView, collisionStatsView].forEach(v => { if(v) v.style.display = 'none'; });
+  const viewMap = { history: historyView, search: searchView, recommend: recommendView, analysis: analysisView, 'ai-pro': aiProView, 'manual-check': manualCheckView, photo: photoView, simulation: simulationView, performance: performanceView, stats: statsView, 'stats-recent': statsRecentView, collision: collisionView, 'collision-stats': collisionStatsView };
   if (viewMap[viewName]) viewMap[viewName].style.display = 'block';
 
-  [navHistoryBtn, navSearchBtn, navRecommendBtn, navAnalysisBtn, navAiProBtn, navManualCheckBtn, navSimulationBtn, navPerformanceBtn, navStatsBtn, navStatsRecentBtn, navCollisionBtn, navCollisionStatsBtn].forEach(b => { if(b) b.classList.remove('active'); });
-  const btnMap = { history: navHistoryBtn, search: navSearchBtn, recommend: navRecommendBtn, analysis: navAnalysisBtn, 'ai-pro': navAiProBtn, 'manual-check': navManualCheckBtn, simulation: navSimulationBtn, performance: navPerformanceBtn, stats: navStatsBtn, 'stats-recent': navStatsRecentBtn, collision: navCollisionBtn, 'collision-stats': navCollisionStatsBtn };
+  [navHistoryBtn, navSearchBtn, navRecommendBtn, navAnalysisBtn, navAiProBtn, navManualCheckBtn, navPhotoBtn, navSimulationBtn, navPerformanceBtn, navStatsBtn, navStatsRecentBtn, navCollisionBtn, navCollisionStatsBtn].forEach(b => { if(b) b.classList.remove('active'); });
+  const btnMap = { history: navHistoryBtn, search: navSearchBtn, recommend: navRecommendBtn, analysis: navAnalysisBtn, 'ai-pro': navAiProBtn, 'manual-check': navManualCheckBtn, photo: navPhotoBtn, simulation: navSimulationBtn, performance: navPerformanceBtn, stats: navStatsBtn, 'stats-recent': navStatsRecentBtn, collision: navCollisionBtn, 'collision-stats': navCollisionStatsBtn };
   if (btnMap[viewName]) btnMap[viewName].classList.add('active');
 
   if (viewName === 'history') renderHistory(currentPage);
@@ -84,6 +96,7 @@ if (navRecommendBtn) navRecommendBtn.onclick = () => switchView('recommend');
 if (navAnalysisBtn) navAnalysisBtn.onclick = () => switchView('analysis');
 if (navAiProBtn) navAiProBtn.onclick = () => switchView('ai-pro');
 if (navManualCheckBtn) navManualCheckBtn.onclick = () => switchView('manual-check');
+if (navPhotoBtn) navPhotoBtn.onclick = () => switchView('photo');
 if (navSimulationBtn) navSimulationBtn.onclick = () => switchView('simulation');
 if (navPerformanceBtn) navPerformanceBtn.onclick = () => switchView('performance');
 if (navStatsBtn) navStatsBtn.onclick = () => switchView('stats');
@@ -250,7 +263,6 @@ if (analysisGenerateBtn) analysisGenerateBtn.onclick = renderAnalysis;
 // --- Manual Check View ---
 function renderManualSelection() {
     if (manualSelectionGrid.children.length > 0) {
-        // Just clear selection if already rendered
         const buttons = manualSelectionGrid.querySelectorAll('.manual-ball-btn');
         buttons.forEach(btn => {
             const num = parseInt(btn.textContent);
@@ -366,19 +378,96 @@ function handleManualReset() {
 if (manualAnalyzeBtn) manualAnalyzeBtn.onclick = handleManualAnalysis;
 if (manualResetBtn) manualResetBtn.onclick = handleManualReset;
 
+// --- Photo Analysis ---
+if (uploadArea) {
+    uploadArea.onclick = () => photoInput.click();
+    
+    photoInput.onchange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                photoPreview.src = e.target.result;
+                photoPreview.style.display = 'block';
+                uploadPlaceholder.style.display = 'none';
+                photoAnalyzeBtn.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+    
+    photoAnalyzeBtn.onclick = () => {
+        const file = photoInput.files[0];
+        if (!file) return;
+        
+        ocrProgressContainer.style.display = 'block';
+        photoAnalyzeBtn.disabled = true;
+        
+        Tesseract.recognize(
+            file,
+            'eng',
+            {
+                logger: m => {
+                    if (m.status === 'recognizing text') {
+                        ocrStatusText.textContent = `분석 중... ${(m.progress * 100).toFixed(0)}%`;
+                        ocrProgressBar.style.width = `${m.progress * 100}%`;
+                    }
+                }
+            }
+        ).then(({ data: { text } }) => {
+            const numbers = extractLottoNumbers(text);
+            if (numbers.length >= 6) {
+                const result = numbers.slice(0, 6).sort((a, b) => a - b);
+                handleManualReset();
+                manualSelectedNumbers = result;
+                switchView('manual-check');
+                renderManualSelection();
+                const buttons = manualSelectionGrid.querySelectorAll('.manual-ball-btn');
+                buttons.forEach(btn => {
+                    const num = parseInt(btn.textContent);
+                    if (manualSelectedNumbers.includes(num)) btn.classList.add('selected');
+                });
+                updateManualSelectionUI();
+                setTimeout(() => alert(`번호가 추출되었습니다: ${result.join(', ')}\n확인 후 '분석하기'를 눌러주세요.`), 100);
+            } else {
+                alert('로또 번호를 찾을 수 없습니다. 사진을 다시 찍어주세요 (숫자가 잘 보이게).');
+            }
+            ocrProgressContainer.style.display = 'none';
+            photoAnalyzeBtn.disabled = false;
+            ocrProgressBar.style.width = '0%';
+        }).catch(err => {
+            console.error(err);
+            alert('이미지 분석 중 오류가 발생했습니다.');
+            ocrProgressContainer.style.display = 'none';
+            photoAnalyzeBtn.disabled = false;
+        });
+    };
+}
+
+function extractLottoNumbers(text) {
+    const cleanedText = text.replace(/O/g, '0').replace(/l/g, '1').replace(/I/g, '1').replace(/S/g, '5').replace(/B/g, '8');
+    const matches = cleanedText.match(/\d+/g);
+    if (!matches) return [];
+    const candidates = [];
+    matches.forEach(m => {
+        const num = parseInt(m);
+        if (num >= 1 && num <= 45 && !candidates.includes(num)) {
+            candidates.push(num);
+        }
+    });
+    return candidates;
+}
+
 // --- Simulation View ---
 function runSimulation() {
     simulationResultContainer.innerHTML = '<p style="text-align:center;">1,000개 조합 생성 및 과거 성적 분석 중... (약 2-3초 소요)</p>';
-    
     setTimeout(() => {
         const WEIGHTS = { 1: 1000, 2: 500, 3: 400, 4: 200, 5: 100 };
         const combinations = [];
-        
         for (let i = 0; i < 1000; i++) {
             const myNumbers = generateRandomNumbers();
             const stats = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
             let totalScore = 0;
-            
             allLottoNumbers.forEach(round => {
                 const res = checkRank(myNumbers, round);
                 if (res.rank > 0) {
@@ -386,13 +475,10 @@ function runSimulation() {
                     totalScore += WEIGHTS[res.rank];
                 }
             });
-            
             combinations.push({ numbers: myNumbers, stats, score: totalScore });
         }
-        
         combinations.sort((a, b) => b.score - a.score || b.stats[1] - a.stats[1]);
         const top3 = combinations.slice(0, 3);
-        
         let html = '';
         top3.forEach((item, index) => {
             const ballsHtml = `<div class="numbers">` + item.numbers.map(n => `<span class="${getBallColorClass(n)}">${n}</span>`).join('') + `</div>`;
@@ -413,7 +499,6 @@ function runSimulation() {
                 </div>
             `;
         });
-        
         simulationResultContainer.innerHTML = html;
     }, 100);
 }
@@ -530,11 +615,9 @@ function renderCollisions() {
     setTimeout(() => {
         const collisions = [];
         const dataSorted = [...allLottoNumbers].sort((a, b) => a.drwNo - b.drwNo);
-        
         for (let i = 0; i < dataSorted.length; i++) {
             const current = dataSorted[i];
             const myNumbers = [current.drwtNo1, current.drwtNo2, current.drwtNo3, current.drwtNo4, current.drwtNo5, current.drwtNo6];
-            
             for (let j = 0; j < i; j++) {
                 const prev = dataSorted[j];
                 const res = checkRank(myNumbers, prev);
@@ -543,19 +626,15 @@ function renderCollisions() {
                 }
             }
         }
-
         collisions.sort((a, b) => a.rank - b.rank || b.roundB.drwNo - a.roundB.drwNo);
-
         if (collisions.length === 0) {
             collisionContainer.innerHTML = '<p class="info-msg">역대 3등 이내 중복 당첨 사례가 없습니다.</p>';
             return;
         }
-
         let html = '';
         collisions.forEach(c => {
             const ballsA = [c.roundA.drwtNo1, c.roundA.drwtNo2, c.roundA.drwtNo3, c.roundA.drwtNo4, c.roundA.drwtNo5, c.roundA.drwtNo6].map(n => `<span class="${getBallColorClass(n)} ${c.matched.includes(n) ? 'matched' : ''}">${n}</span>`).join('');
             const ballsB = [c.roundB.drwtNo1, c.roundB.drwtNo2, c.roundB.drwtNo3, c.roundB.drwtNo4, c.roundB.drwtNo5, c.roundB.drwtNo6].map(n => `<span class="${getBallColorClass(n)} ${c.matched.includes(n) ? 'matched' : ''}">${n}</span>`).join('');
-            
             html += `
                 <div class="collision-card">
                     <div class="collision-title"><span>과거 ${c.rank}등 당첨 사례</span> <span class="perf-rank">${c.rank}등</span></div>
@@ -581,15 +660,12 @@ function renderCollisionHistogram() {
         const numFreq = Array(46).fill(0);
         const dataSorted = [...allLottoNumbers].sort((a, b) => a.drwNo - b.drwNo);
         let collisionCount = 0;
-
         for (let i = 0; i < dataSorted.length; i++) {
             const current = dataSorted[i];
             const myNumbers = [current.drwtNo1, current.drwtNo2, current.drwtNo3, current.drwtNo4, current.drwtNo5, current.drwtNo6];
-            
             for (let j = 0; j < i; j++) {
                 const prev = dataSorted[j];
                 const res = checkRank(myNumbers, prev);
-                // 3등 이상 중복된 경우 (5개 이상 일치)
                 if (res.rank === 1 || res.rank === 2 || res.rank === 3) {
                     collisionCount++;
                     res.matchedNumbers.forEach(num => {
@@ -598,22 +674,17 @@ function renderCollisionHistogram() {
                 }
             }
         }
-
         if (collisionCount === 0) {
             collisionStatsContainer.innerHTML = '<p class="info-msg">역대 3등 이내 중복 당첨 사례가 없습니다.</p>';
             return;
         }
-
-        // Frequency object for sorting
         const freqList = [];
         for (let i = 1; i <= 45; i++) {
             freqList.push({ num: i, count: numFreq[i] });
         }
         freqList.sort((a, b) => b.count - a.count || a.num - b.num);
-
         const maxFreq = Math.max(...numFreq);
         let html = `<div class="stats-card"><h3>중복 당첨 번호 빈도 TOP 15 (총 ${collisionCount}건의 사례 분석)</h3><div class="histogram">`;
-        
         freqList.slice(0, 15).forEach(item => {
             const barWidth = ((item.count / maxFreq) * 100).toFixed(1);
             const ballClass = getBallColorClass(item.num);
@@ -629,8 +700,6 @@ function renderCollisionHistogram() {
                 </div>`;
         });
         html += '</div></div>';
-
-        // Add bottom full list in grid
         html += `<div class="stats-card"><h3>전체 번호별 중복 기여도</h3><div class="freq-grid">`;
         for (let i = 1; i <= 45; i++) {
             const count = numFreq[i];
@@ -638,7 +707,6 @@ function renderCollisionHistogram() {
             html += `<div class="freq-grid-item"><span class="mini-ball ${ballClass}">${i}</span> <span class="freq-count">${count}</span></div>`;
         }
         html += `</div></div>`;
-
         collisionStatsContainer.innerHTML = html;
     }, 100);
 }
@@ -646,18 +714,13 @@ function renderCollisionHistogram() {
 // --- AI Pro View ---
 function renderAIPro() {
     if (!allLottoNumbers || allLottoNumbers.length === 0) return;
-    
     aiProContainer.innerHTML = '<p style="text-align:center;">AI 패턴 분석 중...</p>';
-    
     setTimeout(() => {
-        // 1. Frequency Analysis
         const freq = Array(46).fill(0);
         const recent100Freq = Array(46).fill(0);
         const lastAppearance = Array(46).fill(0);
-        
         const sortedData = [...allLottoNumbers].sort((a, b) => a.drwNo - b.drwNo);
         const totalRounds = sortedData.length;
-        
         sortedData.forEach((item, idx) => {
             const nums = [item.drwtNo1, item.drwtNo2, item.drwtNo3, item.drwtNo4, item.drwtNo5, item.drwtNo6];
             nums.forEach(n => {
@@ -666,79 +729,56 @@ function renderAIPro() {
                 lastAppearance[n] = item.drwNo;
             });
         });
-
         const latestRound = sortedData[totalRounds - 1].drwNo;
         const hotNumbers = [];
         const coldNumbers = [];
-        
-        // Identify Hot (top 10 in recent 100) and Cold (not in last 30)
         const recentSorted = [];
         for(let i=1; i<=45; i++) recentSorted.push({num: i, count: recent100Freq[i]});
         recentSorted.sort((a, b) => b.count - a.count);
         for(let i=0; i<10; i++) hotNumbers.push(recentSorted[i].num);
-        
         for(let i=1; i<=45; i++) {
             if (latestRound - lastAppearance[i] >= 30) coldNumbers.push(i);
         }
-
         aiProContainer.innerHTML = '';
-        
-        // Generate 5 Pro Combinations
         for (let c = 1; c <= 5; c++) {
             let myNumbers = [];
             let attempts = 0;
-            
             while(attempts < 1000) {
                 attempts++;
                 const candidate = [];
-                // Pick 2 from Hot, 1 from Cold, 3 from others (or slightly different mix)
-                const poolHot = hotNumbers.filter(n => !candidate.includes(n));
-                const poolCold = coldNumbers.filter(n => !candidate.includes(n));
                 const poolNormal = [];
                 for(let i=1; i<=45; i++) if(!hotNumbers.includes(i) && !coldNumbers.includes(i)) poolNormal.push(i);
-
-                // Mix logic
                 const pick = (arr, count) => {
                     const shuffled = [...arr].sort(() => 0.5 - Math.random());
                     return shuffled.slice(0, count);
                 };
-
                 const selected = [
                     ...pick(hotNumbers, 2),
                     ...pick(coldNumbers, 1),
                     ...pick(poolNormal, 3)
                 ];
-                
                 if (new Set(selected).size !== 6) continue;
                 selected.sort((a, b) => a - b);
-                
-                // Pattern Filters
                 const sum = selected.reduce((a, b) => a + b, 0);
                 const odds = selected.filter(n => n % 2 !== 0).length;
-                
                 if (sum >= 100 && sum <= 175 && odds >= 2 && odds <= 4) {
                     myNumbers = selected;
                     break;
                 }
             }
-            
             if (myNumbers.length === 0) myNumbers = generateRandomNumbers();
-
             const card = document.createElement('div');
             card.classList.add('recommend-card');
             card.style.borderLeft = '4px solid #4a90e2';
-            
             let ballsHtml = `<div class="numbers">` + myNumbers.map(n => {
                 let extraClass = '';
                 if (hotNumbers.includes(n)) extraClass = 'hot-num';
                 if (coldNumbers.includes(n)) extraClass = 'cold-num';
                 return `<span class="${getBallColorClass(n)} ${extraClass}">${n}</span>`;
             }).join('') + `</div>`;
-            
             const sum = myNumbers.reduce((a, b) => a + b, 0);
             const odds = myNumbers.filter(n => n % 2 !== 0).length;
             const evens = 6 - odds;
-            
             card.innerHTML = `
                 <div class="pro-label-row">
                     <span class="game-label">AI 조합 ${c}</span>
@@ -752,7 +792,6 @@ function renderAIPro() {
             `;
             aiProContainer.appendChild(card);
         }
-        
         const legend = document.createElement('div');
         legend.className = 'analysis-legend';
         legend.innerHTML = `
@@ -760,7 +799,6 @@ function renderAIPro() {
             <div class="legend-item"><span class="dot cold"></span> 장기 미출현 (Cold)</div>
         `;
         aiProContainer.prepend(legend);
-        
     }, 500);
 }
 if (aiProGenerateBtn) aiProGenerateBtn.onclick = renderAIPro;
