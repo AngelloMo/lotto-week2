@@ -8,6 +8,7 @@
   <meta name="keywords" content="로또, lotto, 당첨번호, 역대당첨번호, 동행복권" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎱</text></svg>">
   <link href='/style.css' rel='stylesheet'>
+  <script src='https://unpkg.com/tesseract.js@v2.1.0/dist/tesseract.min.js'></script>
 </head>
 <body>
   <h1>로또 당첨번호</h1>
@@ -21,6 +22,7 @@
     <button id="nav-collision">중복 당첨 분석</button>
     <button id="nav-collision-stats">중복 번호 통계</button>
     <button id="nav-manual-check">수동 번호 분석</button>
+    <button id="nav-photo">사진으로 분석</button>
     <button id="nav-simulation">Top 1000 시뮬</button>
     <button id="nav-recommend">번호 추천</button>
     <button id="nav-analysis">분석 추천</button>
@@ -108,6 +110,32 @@
       </div>
     </div>
     <div id="manual-check-result-container"></div>
+  </section>
+
+  <!-- Photo Analyze View -->
+  <section id="photo-view" class="view-section" style="display: none;">
+    <div class="recommend-header">
+      <h2>사진으로 번호 분석</h2>
+      <p>로또 용지 사진을 올리면 번호를 자동으로 인식하여<br>수동 분석 페이지로 이동합니다.</p>
+      
+      <div class="upload-area" id="upload-area">
+        <input type="file" id="photo-input" accept="image/*" style="display:none">
+        <div id="upload-placeholder">
+          <p style="font-size:2em; margin:0;">📸</p>
+          <p>여기를 클릭하여 사진을 업로드하세요</p>
+        </div>
+        <img id="photo-preview" style="display:none; max-width:100%; border-radius:8px;">
+      </div>
+
+      <div id="ocr-progress-container" style="display:none; margin-top:15px;">
+        <p id="ocr-status-text">분석 준비 중...</p>
+        <div class="progress-bar-bg">
+          <div id="ocr-progress-bar" class="progress-bar-fill"></div>
+        </div>
+      </div>
+
+      <button id="photo-analyze-btn" style="display:none; margin-top:15px;">번호 추출 및 분석</button>
+    </div>
   </section>
 
   <!-- Simulation View -->
