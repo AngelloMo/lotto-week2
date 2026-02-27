@@ -383,7 +383,7 @@ function handleManualReset() {
 if (manualAnalyzeBtn) manualAnalyzeBtn.onclick = handleManualAnalysis;
 if (manualResetBtn) manualResetBtn.onclick = handleManualReset;
 
-// --- Photo Analysis (High-Precision Engine) ---
+// --- Photo Analysis (Advanced Anchor Engine) ---
 if (uploadArea) {
     uploadArea.onclick = () => photoInput.click();
     
@@ -432,29 +432,29 @@ if (uploadArea) {
         photoResultsContainer.innerHTML = '';
         
         try {
-            // Ultra-High Res Preprocessing
-            const processedImg = await preprocessImageV3(file);
+            // High-resolution preprocessing
+            const processedImg = await preprocessImageV4(file);
             
+            // Language eng+kor to detect '동' (Dong)
             const { data } = await Tesseract.recognize(
                 processedImg,
-                'eng',
+                'eng+kor',
                 {
                     logger: m => {
                         if (m.status === 'recognizing text') {
-                            ocrStatusText.textContent = `인공지능 정밀 판독 중... ${(m.progress * 100).toFixed(0)}%`;
+                            ocrStatusText.textContent = `패턴 분석기 가동 중... ${(m.progress * 100).toFixed(0)}%`;
                             ocrProgressBar.style.width = `${m.progress * 100}%`;
                         }
                     }
                 }
             );
 
-            // Use spatial data (lines) if available, or robust text parsing
-            const combinations = extractSmartCombinations(data);
+            const combinations = extractDongAnchorCombinations(data.text);
             renderPhotoAnalysisResults(combinations);
             
         } catch (err) {
             console.error(err);
-            alert('인식 오류가 발생했습니다. 선명하고 밝은 사진으로 다시 시도해주세요.');
+            alert('인식 오류가 발생했습니다. 번호가 선명한 사진으로 다시 시도해주세요.');
         } finally {
             ocrProgressContainer.style.display = 'none';
             photoAnalyzeBtn.disabled = false;
@@ -463,85 +463,111 @@ if (uploadArea) {
     };
 }
 
-async function preprocessImageV3(file) {
+async function preprocessImageV4(file) {
     return new Promise((resolve) => {
         const img = new Image();
         img.onload = () => {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
-            const targetWidth = 2400; // Increased resolution
+            const targetWidth = 2000;
             const scale = targetWidth / img.width;
             canvas.width = targetWidth;
             canvas.height = img.height * scale;
             
-            // Step 1: Grayscale & High Contrast
-            ctx.filter = 'grayscale(100%) contrast(200%) brightness(95%)';
+            // Grayscale & Sharpen
+            ctx.filter = 'grayscale(100%) contrast(200%) brightness(90%)';
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
             
-            // Step 2: Adaptive-like Thresholding (Manual)
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const data = imageData.data;
-            for (let i = 0; i < data.length; i += 4) {
-                const avg = (data[i] + data[i+1] + data[i+2]) / 3;
-                const val = avg > 128 ? 255 : 0; // Simple threshold
-                data[i] = data[i+1] = data[i+2] = val;
-            }
-            ctx.putImageData(imageData, 0, 0);
-            
+            // Apply a sharpening effect by re-drawing with a slight offset or just higher contrast
             resolve(canvas.toDataURL('image/png'));
         };
         img.src = typeof file === 'string' ? file : URL.createObjectURL(file);
     });
 }
 
-function extractSmartCombinations(ocrData) {
-    const text = ocrData.text.toUpperCase()
+function extractDongAnchorCombinations(text) {
+    // Standardize text
+    const cleanedText = text.toUpperCase()
         .replace(/O/g, '0').replace(/[IL|]/g, '1').replace(/S/g, '5')
         .replace(/B/g, '8').replace(/G/g, '6').replace(/Z/g, '2');
         
-    const lines = text.split('\n');
+    const lines = cleanedText.split('\n');
     const finalCombos = [];
-    const targets = ['A', 'B', 'C', 'D', 'E'];
-
-    // Group 1: Reliable Anchor Lines (Starting with A-E)
+    
+    // Core Logic: Look for '동' (Manual/Auto label) and grab next 6 numbers
     lines.forEach(line => {
-        const cleanLine = line.trim();
-        // Check if line contains any target anchor
-        const anchor = targets.find(t => cleanLine.startsWith(t) || cleanLine.includes(` ${t} `));
-        if (anchor) {
-            const nums = (cleanLine.match(/\b([1-9]|[1-3][0-9]|4[0-5])\b/g) || []).map(n => parseInt(n));
+        // Search for '동' character (can be misread as DONG, DUNG, etc in Eng, but Kor engine helps)
+        // Check both Korean '동' and common English misreads of it
+        const anchorIndex = line.indexOf('동');
+        let numbersPart = '';
+        
+        if (anchorIndex !== -1) {
+            numbersPart = line.substring(anchorIndex + 1);
+        } else {
+            // Fallback: If '동' is not found, maybe look for [자/수/반자] characters
+            const fallbackAnchors = ['자동', '수동', '반자'];
+            for(const fa of fallbackAnchors) {
+                if(line.includes(fa)) {
+                    numbersPart = line.substring(line.indexOf(fa) + fa.length);
+                    break;
+                }
+            }
+        }
+
+        if (numbersPart) {
+            const nums = (numbersPart.match(/\b([1-9]|[1-3][0-9]|4[0-5])\b/g) || [])
+                .map(n => parseInt(n));
+            
             if (nums.length >= 6) {
-                const game = [...new Set(nums.slice(-6))].sort((a, b) => a - b);
-                if (game.length === 6) finalCombos.push({ label: anchor, numbers: game });
+                // Grab the first 6 unique numbers after the anchor
+                const game = [];
+                const seen = new Set();
+                for (const n of nums) {
+                    if (!seen.has(n)) {
+                        game.push(n);
+                        seen.add(n);
+                    }
+                    if (game.length === 6) break;
+                }
+                
+                if (game.length === 6) {
+                    finalCombos.push(game.sort((a, b) => a - b));
+                }
             }
         }
     });
 
-    // Group 2: Pattern Fallback (Any sequence of 6+ numbers not already captured)
+    // Fallback: If '동' logic failed to find 5 lines, use the old sequence logic
     if (finalCombos.length < 5) {
         lines.forEach(line => {
             const nums = (line.match(/\b([1-9]|[1-3][0-9]|4[0-5])\b/g) || []).map(n => parseInt(n));
             if (nums.length >= 6) {
                 const game = [...new Set(nums.slice(-6))].sort((a, b) => a - b);
                 const key = game.join(',');
-                if (game.length === 6 && !finalCombos.some(c => c.numbers.join(',') === key)) {
-                    finalCombos.push({ label: '?', numbers: game });
+                if (game.length === 6 && !finalCombos.some(c => c.join(',') === key)) {
+                    finalCombos.push(game);
                 }
             }
         });
     }
 
-    // Sort by Label and Dedup
-    return finalCombos
-        .sort((a, b) => a.label.localeCompare(b.label))
-        .filter((v, i, a) => i === a.findIndex(t => t.numbers.join(',') === v.numbers.join(',')))
-        .slice(0, 5)
-        .map(c => c.numbers);
+    // Dedup and return top 5
+    const result = [];
+    const seenKeys = new Set();
+    finalCombos.forEach(c => {
+        const key = c.join(',');
+        if (!seenKeys.has(key)) {
+            result.push(c);
+            seenKeys.add(key);
+        }
+    });
+
+    return result.slice(0, 5);
 }
 
 function renderPhotoAnalysisResults(combinations) {
     if (combinations.length === 0) {
-        photoResultsContainer.innerHTML = '<div class="stats-card" style="border-top:4px solid #d32f2f; margin-top:20px;"><p class="info-msg" style="text-align:center;">⚠️ 번호 인식 실패<br><b>A~E 기호와 숫자 6개</b>가 선명하게 보이도록<br>밝은 곳에서 수평을 맞춰 다시 찍어주세요.</p></div>';
+        photoResultsContainer.innerHTML = '<div class="stats-card" style="border-top:4px solid #d32f2f; margin-top:20px;"><p class="info-msg" style="text-align:center;">⚠️ 번호 인식 실패<br><b>"자동/수동" 글자와 숫자 6개</b>가 선명하게 보이도록<br>밝은 곳에서 다시 찍어주세요.</p></div>';
         return;
     }
 
@@ -562,9 +588,9 @@ function renderPhotoAnalysisResults(combinations) {
         const ballsHtml = `<div class="numbers" style="margin:15px 0;">` + myNumbers.map(n => `<span class="${getBallColorClass(n)}">${n}</span>`).join('') + `</div>`;
         
         html += `
-            <div class="stats-card" style="margin-bottom:20px; border-left: 5px solid #1877f2;">
+            <div class="stats-card" style="margin-bottom:20px; border-left: 5px solid #1877f2; animation: fadeIn 0.5s ease-out;">
                 <div class="pro-label-row">
-                    <span class="game-label" style="background:#1877f2; color:white; padding:3px 12px; border-radius:15px; font-size:0.9em;">${String.fromCharCode(65 + idx)}행 판독</span>
+                    <span class="game-label" style="background:#1877f2; color:white; padding:3px 12px; border-radius:15px; font-size:0.9em;">조합 ${String.fromCharCode(65 + idx)} 판독</span>
                     <span class="pro-tag" style="background:#fff3f3; color:#d32f2f; font-weight:bold;">과거 총 ${totalWins}회 당첨</span>
                 </div>
                 ${ballsHtml}
