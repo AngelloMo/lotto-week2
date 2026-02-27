@@ -328,44 +328,48 @@ function handleManualAnalysis() {
     manualCheckResultContainer.innerHTML = '<p style="text-align:center;">역대 기록과 대조 중...</p>';
     
     setTimeout(() => {
-        const myNumbers = [...manualSelectedNumbers].sort((a, b) => a - b);
-        const winStats = { 1: [], 2: [], 3: [], 4: [], 5: [] };
-        let totalWins = 0;
+        const resultHtml = calculateWinsForSet(manualSelectedNumbers);
+        manualCheckResultContainer.innerHTML = resultHtml;
+    }, 100);
+}
 
-        allLottoNumbers.forEach(round => {
-            const res = checkRank(myNumbers, round);
-            if (res.rank > 0) {
-                winStats[res.rank].push(round);
-                totalWins++;
+function calculateWinsForSet(myNumbersInput) {
+    const myNumbers = [...myNumbersInput].sort((a, b) => a - b);
+    const winStats = { 1: [], 2: [], 3: [], 4: [], 5: [] };
+    let totalWins = 0;
+
+    allLottoNumbers.forEach(round => {
+        const res = checkRank(myNumbers, round);
+        if (res.rank > 0) {
+            winStats[res.rank].push(round);
+            totalWins++;
+        }
+    });
+
+    let html = `<div class="stats-card"><h3>분석 결과: 총 ${totalWins}회 당첨</h3>`;
+    html += '<div class="manual-summary-grid">';
+    [1, 2, 3, 4, 5].forEach(rank => {
+        const count = winStats[rank].length;
+        html += `<div class="summary-item"><span class="rank-label">${rank}등</span> <span class="rank-count">${count}회</span></div>`;
+    });
+    html += '</div></div>';
+
+    if (totalWins > 0) {
+        html += `<h3>상세 당첨 내역 (최근 순)</h3>`;
+        [1, 2, 3, 4, 5].forEach(rank => {
+            if (winStats[rank].length > 0) {
+                html += `<div class="rank-group"><h4>${rank}등 (${winStats[rank].length}회)</h4><div class="rank-list">`;
+                winStats[rank].slice(0, 10).forEach(round => {
+                    html += `<div class="rank-round-item">제 ${round.drwNo}회 (${round.drwNoDate})</div>`;
+                });
+                if (winStats[rank].length > 10) html += `<div class="rank-round-more">...외 ${winStats[rank].length - 10}건 더 있음</div>`;
+                html += '</div></div>';
             }
         });
-
-        let html = `<div class="stats-card"><h3>분석 결과: 총 ${totalWins}회 당첨</h3>`;
-        html += '<div class="manual-summary-grid">';
-        [1, 2, 3, 4, 5].forEach(rank => {
-            const count = winStats[rank].length;
-            html += `<div class="summary-item"><span class="rank-label">${rank}등</span> <span class="rank-count">${count}회</span></div>`;
-        });
-        html += '</div></div>';
-
-        if (totalWins > 0) {
-            html += `<h3>상세 당첨 내역 (최근 순)</h3>`;
-            [1, 2, 3, 4, 5].forEach(rank => {
-                if (winStats[rank].length > 0) {
-                    html += `<div class="rank-group"><h4>${rank}등 (${winStats[rank].length}회)</h4><div class="rank-list">`;
-                    winStats[rank].slice(0, 10).forEach(round => {
-                        html += `<div class="rank-round-item">제 ${round.drwNo}회 (${round.drwNoDate})</div>`;
-                    });
-                    if (winStats[rank].length > 10) html += `<div class="rank-round-more">...외 ${winStats[rank].length - 10}건 더 있음</div>`;
-                    html += '</div></div>';
-                }
-            });
-        } else {
-            html += '<p class="info-msg" style="text-align:center;">안타깝게도 역대 5등 이내 당첨 기록이 없습니다.</p>';
-        }
-
-        manualCheckResultContainer.innerHTML = html;
-    }, 100);
+    } else {
+        html += '<p class="info-msg" style="text-align:center;">역대 5등 이내 당첨 기록이 없습니다.</p>';
+    }
+    return html;
 }
 
 function handleManualReset() {
@@ -379,7 +383,7 @@ function handleManualReset() {
 if (manualAnalyzeBtn) manualAnalyzeBtn.onclick = handleManualAnalysis;
 if (manualResetBtn) manualResetBtn.onclick = handleManualReset;
 
-// --- Photo Analysis ---
+// --- Photo Analysis (Enhanced) ---
 if (uploadArea) {
     uploadArea.onclick = () => photoInput.click();
     
@@ -398,7 +402,7 @@ if (uploadArea) {
         }
     };
     
-    photoAnalyzeBtn.onclick = () => {
+    photoAnalyzeBtn.onclick = async () => {
         const file = photoInput.files[0];
         if (!file) return;
         
@@ -406,79 +410,115 @@ if (uploadArea) {
         photoAnalyzeBtn.disabled = true;
         photoResultsContainer.innerHTML = '';
         
-        // Use Worker for better control and recognition
-        Tesseract.recognize(
-            file,
-            'eng',
-            {
-                logger: m => {
-                    if (m.status === 'recognizing text') {
-                        ocrStatusText.textContent = `글자 인식 중... ${(m.progress * 100).toFixed(0)}%`;
-                        ocrProgressBar.style.width = `${m.progress * 100}%`;
-                    }
-                },
-                // Whitelist numbers to improve accuracy
-                tessedit_char_whitelist: '0123456789 '
-            }
-        ).then(({ data: { text } }) => {
-            const combinations = extractMultipleLottoCombinations(text);
+        try {
+            // Pre-process image for better OCR
+            const processedImg = await preprocessImage(file);
+            
+            const { data: { text } } = await Tesseract.recognize(
+                processedImg,
+                'eng',
+                {
+                    logger: m => {
+                        if (m.status === 'recognizing text') {
+                            ocrStatusText.textContent = `정밀 분석 중... ${(m.progress * 100).toFixed(0)}%`;
+                            ocrProgressBar.style.width = `${m.progress * 100}%`;
+                        }
+                    },
+                    tessedit_char_whitelist: '0123456789 ABCDE' // Added labels
+                }
+            );
+
+            const combinations = extractRobustCombinations(text);
             renderPhotoAnalysisResults(combinations);
             
+        } catch (err) {
+            console.error(err);
+            alert('이미지 분석 중 오류가 발생했습니다. 사진을 다시 찍어주세요.');
+        } finally {
             ocrProgressContainer.style.display = 'none';
             photoAnalyzeBtn.disabled = false;
             ocrProgressBar.style.width = '0%';
-        }).catch(err => {
-            console.error(err);
-            alert('이미지 분석 중 오류가 발생했습니다.');
-            ocrProgressContainer.style.display = 'none';
-            photoAnalyzeBtn.disabled = false;
-        });
+        }
     };
 }
 
-function extractMultipleLottoCombinations(text) {
-    // Replace OCR artifacts
+// Image preprocessing to improve OCR
+async function preprocessImage(file) {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Normalize size
+            const maxDim = 1500;
+            let width = img.width;
+            let height = img.height;
+            if (width > height) {
+                if (width > maxDim) { height *= maxDim / width; width = maxDim; }
+            } else {
+                if (height > maxDim) { width *= maxDim / height; height = maxDim; }
+            }
+            
+            canvas.width = width;
+            canvas.height = height;
+            
+            // 1. Grayscale & High Contrast
+            ctx.filter = 'grayscale(100%) contrast(150%) brightness(90%)';
+            ctx.drawImage(img, 0, 0, width, height);
+            
+            resolve(canvas.toDataURL('image/png'));
+        };
+        img.src = URL.createObjectURL(file);
+    });
+}
+
+function extractRobustCombinations(text) {
     const cleanedText = text.replace(/O/g, '0').replace(/l/g, '1').replace(/I/g, '1').replace(/S/g, '5').replace(/B/g, '8');
     const lines = cleanedText.split('\n');
     const combinations = [];
 
     lines.forEach(line => {
-        // Find all numbers in the line
-        const matches = line.match(/\d+/g);
+        // Find numbers between 1-45
+        const matches = line.match(/\b([1-9]|[1-3][0-9]|4[0-5])\b/g);
         if (matches) {
-            // Keep only valid lotto numbers (1-45)
-            const nums = matches.map(m => parseInt(m)).filter(n => n >= 1 && n <= 45);
+            const nums = matches.map(m => parseInt(m));
+            // A valid combination must have 6 UNIQUE numbers
+            const uniqueNums = [...new Set(nums)];
             
-            // If we have at least 6 numbers, it's likely a combination
-            if (nums.length >= 6) {
-                // Remove duplicates and take first 6
-                const uniqueSet = [...new Set(nums)].slice(0, 6).sort((a, b) => a - b);
-                if (uniqueSet.length === 6) {
-                    combinations.push(uniqueSet);
+            if (uniqueNums.length >= 6) {
+                // Take the 6 numbers that are likely lotto numbers
+                // (Lottery tickets usually have 6 numbers grouped together)
+                for (let i = 0; i <= uniqueNums.length - 6; i++) {
+                    const combo = uniqueNums.slice(i, i + 6).sort((a, b) => a - b);
+                    // Basic sanity check: sum should be in typical range
+                    const sum = combo.reduce((a, b) => a + b, 0);
+                    if (sum >= 21 && sum <= 255) {
+                        combinations.push(combo);
+                        break; // Only one combo per line usually
+                    }
                 }
             }
         }
     });
 
-    // Fallback: If no combinations found via lines, try greedy search in full text
-    if (combinations.length === 0) {
-        const allNums = cleanedText.match(/\d+/g);
-        if (allNums) {
-            const filtered = allNums.map(m => parseInt(m)).filter(n => n >= 1 && n <= 45);
-            for (let i = 0; i < filtered.length; i += 6) {
-                if (i + 5 < filtered.length) {
-                    combinations.push(filtered.slice(i, i + 6).sort((a, b) => a - b));
-                }
-            }
+    // Deduplicate combinations
+    const seen = new Set();
+    const finalCombos = [];
+    combinations.forEach(c => {
+        const key = c.join(',');
+        if (!seen.has(key)) {
+            seen.add(key);
+            finalCombos.push(c);
         }
-    }
+    });
 
-    return combinations.slice(0, 10); // Limit to 10 for safety
+    return finalCombos.slice(0, 5); // Return top 5 games
 }
 
 function renderPhotoAnalysisResults(combinations) {
     if (combinations.length === 0) {
-        photoResultsContainer.innerHTML = '<p class="info-msg" style="text-align:center;">번호를 인식하지 못했습니다. 숫자가 선명하게 보이도록 다시 찍어주세요.</p>';
+        photoResultsContainer.innerHTML = '<p class="info-msg" style="text-align:center;">번호를 인식하지 못했습니다.<br>로또 용지의 번호 부분만 밝고 평평하게 찍어주세요.</p>';
         return;
     }
 
@@ -501,8 +541,8 @@ function renderPhotoAnalysisResults(combinations) {
         html += `
             <div class="stats-card">
                 <div class="pro-label-row">
-                    <span class="game-label">조합 ${idx + 1}</span>
-                    <span class="pro-tag">과거 총 ${totalWins}회 당첨</span>
+                    <span class="game-label">게임 ${String.fromCharCode(65 + idx)}</span>
+                    <span class="pro-tag" style="background:#e8f5e9; color:#2e7d32;">과거 당첨: ${totalWins}회</span>
                 </div>
                 ${ballsHtml}
                 <div class="manual-summary-grid" style="grid-template-columns: repeat(5, 1fr); gap: 5px;">
@@ -517,7 +557,6 @@ function renderPhotoAnalysisResults(combinations) {
     });
 
     photoResultsContainer.innerHTML = html;
-    // Scroll to results
     photoResultsContainer.scrollIntoView({ behavior: 'smooth' });
 }
 
@@ -808,7 +847,6 @@ function renderAIPro() {
             let attempts = 0;
             while(attempts < 1000) {
                 attempts++;
-                const candidate = [];
                 const poolNormal = [];
                 for(let i=1; i<=45; i++) if(!hotNumbers.includes(i) && !coldNumbers.includes(i)) poolNormal.push(i);
                 const pick = (arr, count) => {
