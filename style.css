@@ -474,3 +474,41 @@ h1 {
   transform: scale(1.1);
   z-index: 1;
 }
+
+/* Mini Balls for Stats */
+.mini-ball {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    color: white;
+    font-weight: bold;
+    font-size: 0.7em;
+    background-color: #fbc02d;
+    box-shadow: inset -1px -1px 2px rgba(0,0,0,0.2);
+}
+
+.freq-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+    gap: 10px;
+    padding: 10px;
+}
+
+.freq-grid-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    background: #f9f9f9;
+    padding: 8px;
+    border-radius: 8px;
+}
+
+.freq-count {
+    font-size: 0.8em;
+    font-weight: bold;
+    color: #1877f2;
+}

@@ -13,6 +13,7 @@ const performanceView = document.getElementById('performance-view');
 const statsView = document.getElementById('stats-view');
 const statsRecentView = document.getElementById('stats-recent-view');
 const collisionView = document.getElementById('collision-view');
+const collisionStatsView = document.getElementById('collision-stats-view');
 
 const lottoNumbersContainer = document.getElementById('lotto-numbers-container');
 const paginationContainer = document.getElementById('pagination-container');
@@ -31,6 +32,7 @@ const performanceResultContainer = document.getElementById('performance-result-c
 const statsContainer = document.getElementById('stats-container');
 const statsRecentContainer = document.getElementById('stats-recent-container');
 const collisionContainer = document.getElementById('collision-container');
+const collisionStatsContainer = document.getElementById('collision-stats-container');
 
 const navHistoryBtn = document.getElementById('nav-history');
 const navSearchBtn = document.getElementById('nav-search');
@@ -41,24 +43,26 @@ const navPerformanceBtn = document.getElementById('nav-performance');
 const navStatsBtn = document.getElementById('nav-stats');
 const navStatsRecentBtn = document.getElementById('nav-stats-recent');
 const navCollisionBtn = document.getElementById('nav-collision');
+const navCollisionStatsBtn = document.getElementById('nav-collision-stats');
 
 let allLottoNumbers = [];
 let currentPage = 1;
 
 // --- View Toggling ---
 function switchView(viewName) {
-  [historyView, searchView, recommendView, analysisView, aiProView, performanceView, statsView, statsRecentView, collisionView].forEach(v => { if(v) v.style.display = 'none'; });
-  const viewMap = { history: historyView, search: searchView, recommend: recommendView, analysis: analysisView, 'ai-pro': aiProView, performance: performanceView, stats: statsView, 'stats-recent': statsRecentView, collision: collisionView };
+  [historyView, searchView, recommendView, analysisView, aiProView, performanceView, statsView, statsRecentView, collisionView, collisionStatsView].forEach(v => { if(v) v.style.display = 'none'; });
+  const viewMap = { history: historyView, search: searchView, recommend: recommendView, analysis: analysisView, 'ai-pro': aiProView, performance: performanceView, stats: statsView, 'stats-recent': statsRecentView, collision: collisionView, 'collision-stats': collisionStatsView };
   if (viewMap[viewName]) viewMap[viewName].style.display = 'block';
 
-  [navHistoryBtn, navSearchBtn, navRecommendBtn, navAnalysisBtn, navAiProBtn, navPerformanceBtn, navStatsBtn, navStatsRecentBtn, navCollisionBtn].forEach(b => { if(b) b.classList.remove('active'); });
-  const btnMap = { history: navHistoryBtn, search: navSearchBtn, recommend: navRecommendBtn, analysis: navAnalysisBtn, 'ai-pro': navAiProBtn, performance: navPerformanceBtn, stats: navStatsBtn, 'stats-recent': navStatsRecentBtn, collision: navCollisionBtn };
+  [navHistoryBtn, navSearchBtn, navRecommendBtn, navAnalysisBtn, navAiProBtn, navPerformanceBtn, navStatsBtn, navStatsRecentBtn, navCollisionBtn, navCollisionStatsBtn].forEach(b => { if(b) b.classList.remove('active'); });
+  const btnMap = { history: navHistoryBtn, search: navSearchBtn, recommend: navRecommendBtn, analysis: navAnalysisBtn, 'ai-pro': navAiProBtn, performance: navPerformanceBtn, stats: navStatsBtn, 'stats-recent': navStatsRecentBtn, collision: navCollisionBtn, 'collision-stats': navCollisionStatsBtn };
   if (btnMap[viewName]) btnMap[viewName].classList.add('active');
 
   if (viewName === 'history') renderHistory(currentPage);
   if (viewName === 'stats') renderStats();
   if (viewName === 'stats-recent') renderStatsRecent();
   if (viewName === 'collision') renderCollisions();
+  if (viewName === 'collision-stats') renderCollisionHistogram();
 }
 
 if (navHistoryBtn) navHistoryBtn.onclick = () => switchView('history');
@@ -70,6 +74,7 @@ if (navPerformanceBtn) navPerformanceBtn.onclick = () => switchView('performance
 if (navStatsBtn) navStatsBtn.onclick = () => switchView('stats');
 if (navStatsRecentBtn) navStatsRecentBtn.onclick = () => switchView('stats-recent');
 if (navCollisionBtn) navCollisionBtn.onclick = () => switchView('collision');
+if (navCollisionStatsBtn) navCollisionStatsBtn.onclick = () => switchView('collision-stats');
 
 // --- Helper Functions ---
 function getBallColorClass(num) {
@@ -379,6 +384,75 @@ function renderCollisions() {
             `;
         });
         collisionContainer.innerHTML = html;
+    }, 100);
+}
+
+// --- Collision Stats View ---
+function renderCollisionHistogram() {
+    collisionStatsContainer.innerHTML = '<p style="text-align:center;">중복 데이터를 분석하고 있습니다... (약 5-10초 소요)</p>';
+    setTimeout(() => {
+        const numFreq = Array(46).fill(0);
+        const dataSorted = [...allLottoNumbers].sort((a, b) => a.drwNo - b.drwNo);
+        let collisionCount = 0;
+
+        for (let i = 0; i < dataSorted.length; i++) {
+            const current = dataSorted[i];
+            const myNumbers = [current.drwtNo1, current.drwtNo2, current.drwtNo3, current.drwtNo4, current.drwtNo5, current.drwtNo6];
+            
+            for (let j = 0; j < i; j++) {
+                const prev = dataSorted[j];
+                const res = checkRank(myNumbers, prev);
+                // 3등 이상 중복된 경우 (5개 이상 일치)
+                if (res.rank === 1 || res.rank === 2 || res.rank === 3) {
+                    collisionCount++;
+                    res.matchedNumbers.forEach(num => {
+                        numFreq[num]++;
+                    });
+                }
+            }
+        }
+
+        if (collisionCount === 0) {
+            collisionStatsContainer.innerHTML = '<p class="info-msg">역대 3등 이내 중복 당첨 사례가 없습니다.</p>';
+            return;
+        }
+
+        // Frequency object for sorting
+        const freqList = [];
+        for (let i = 1; i <= 45; i++) {
+            freqList.push({ num: i, count: numFreq[i] });
+        }
+        freqList.sort((a, b) => b.count - a.count || a.num - b.num);
+
+        const maxFreq = Math.max(...numFreq);
+        let html = `<div class="stats-card"><h3>중복 당첨 번호 빈도 TOP 15 (총 ${collisionCount}건의 사례 분석)</h3><div class="histogram">`;
+        
+        freqList.slice(0, 15).forEach(item => {
+            const barWidth = ((item.count / maxFreq) * 100).toFixed(1);
+            const ballClass = getBallColorClass(item.num);
+            html += `
+                <div class="hist-row">
+                    <div class="hist-label" style="display:flex; align-items:center; gap:5px; width:60px;">
+                        <span class="mini-ball ${ballClass}">${item.num}</span>
+                    </div>
+                    <div class="hist-bar-container">
+                        <div class="hist-bar" style="width: ${barWidth}%; background: ${item.count === maxFreq ? '#d32f2f' : '#1877f2'}"></div>
+                        <div class="hist-value">${item.count}회</div>
+                    </div>
+                </div>`;
+        });
+        html += '</div></div>';
+
+        // Add bottom full list in grid
+        html += `<div class="stats-card"><h3>전체 번호별 중복 기여도</h3><div class="freq-grid">`;
+        for (let i = 1; i <= 45; i++) {
+            const count = numFreq[i];
+            const ballClass = getBallColorClass(i);
+            html += `<div class="freq-grid-item"><span class="mini-ball ${ballClass}">${i}</span> <span class="freq-count">${count}</span></div>`;
+        }
+        html += `</div></div>`;
+
+        collisionStatsContainer.innerHTML = html;
     }, 100);
 }
 
