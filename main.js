@@ -53,6 +53,7 @@ const ocrProgressContainer = document.getElementById('ocr-progress-container');
 const ocrProgressBar = document.getElementById('ocr-progress-bar');
 const ocrStatusText = document.getElementById('ocr-status-text');
 const uploadPlaceholder = document.getElementById('upload-placeholder');
+const photoResultsContainer = document.getElementById('photo-results-container');
 
 const navHistoryBtn = document.getElementById('nav-history');
 const navSearchBtn = document.getElementById('nav-search');
@@ -391,6 +392,7 @@ if (uploadArea) {
                 photoPreview.style.display = 'block';
                 uploadPlaceholder.style.display = 'none';
                 photoAnalyzeBtn.style.display = 'block';
+                photoResultsContainer.innerHTML = '';
             };
             reader.readAsDataURL(file);
         }
@@ -402,36 +404,26 @@ if (uploadArea) {
         
         ocrProgressContainer.style.display = 'block';
         photoAnalyzeBtn.disabled = true;
+        photoResultsContainer.innerHTML = '';
         
+        // Use Worker for better control and recognition
         Tesseract.recognize(
             file,
             'eng',
             {
                 logger: m => {
                     if (m.status === 'recognizing text') {
-                        ocrStatusText.textContent = `분석 중... ${(m.progress * 100).toFixed(0)}%`;
+                        ocrStatusText.textContent = `글자 인식 중... ${(m.progress * 100).toFixed(0)}%`;
                         ocrProgressBar.style.width = `${m.progress * 100}%`;
                     }
-                }
+                },
+                // Whitelist numbers to improve accuracy
+                tessedit_char_whitelist: '0123456789 '
             }
         ).then(({ data: { text } }) => {
-            const numbers = extractLottoNumbers(text);
-            if (numbers.length >= 6) {
-                const result = numbers.slice(0, 6).sort((a, b) => a - b);
-                handleManualReset();
-                manualSelectedNumbers = result;
-                switchView('manual-check');
-                renderManualSelection();
-                const buttons = manualSelectionGrid.querySelectorAll('.manual-ball-btn');
-                buttons.forEach(btn => {
-                    const num = parseInt(btn.textContent);
-                    if (manualSelectedNumbers.includes(num)) btn.classList.add('selected');
-                });
-                updateManualSelectionUI();
-                setTimeout(() => alert(`번호가 추출되었습니다: ${result.join(', ')}\n확인 후 '분석하기'를 눌러주세요.`), 100);
-            } else {
-                alert('로또 번호를 찾을 수 없습니다. 사진을 다시 찍어주세요 (숫자가 잘 보이게).');
-            }
+            const combinations = extractMultipleLottoCombinations(text);
+            renderPhotoAnalysisResults(combinations);
+            
             ocrProgressContainer.style.display = 'none';
             photoAnalyzeBtn.disabled = false;
             ocrProgressBar.style.width = '0%';
@@ -444,18 +436,89 @@ if (uploadArea) {
     };
 }
 
-function extractLottoNumbers(text) {
+function extractMultipleLottoCombinations(text) {
+    // Replace OCR artifacts
     const cleanedText = text.replace(/O/g, '0').replace(/l/g, '1').replace(/I/g, '1').replace(/S/g, '5').replace(/B/g, '8');
-    const matches = cleanedText.match(/\d+/g);
-    if (!matches) return [];
-    const candidates = [];
-    matches.forEach(m => {
-        const num = parseInt(m);
-        if (num >= 1 && num <= 45 && !candidates.includes(num)) {
-            candidates.push(num);
+    const lines = cleanedText.split('\n');
+    const combinations = [];
+
+    lines.forEach(line => {
+        // Find all numbers in the line
+        const matches = line.match(/\d+/g);
+        if (matches) {
+            // Keep only valid lotto numbers (1-45)
+            const nums = matches.map(m => parseInt(m)).filter(n => n >= 1 && n <= 45);
+            
+            // If we have at least 6 numbers, it's likely a combination
+            if (nums.length >= 6) {
+                // Remove duplicates and take first 6
+                const uniqueSet = [...new Set(nums)].slice(0, 6).sort((a, b) => a - b);
+                if (uniqueSet.length === 6) {
+                    combinations.push(uniqueSet);
+                }
+            }
         }
     });
-    return candidates;
+
+    // Fallback: If no combinations found via lines, try greedy search in full text
+    if (combinations.length === 0) {
+        const allNums = cleanedText.match(/\d+/g);
+        if (allNums) {
+            const filtered = allNums.map(m => parseInt(m)).filter(n => n >= 1 && n <= 45);
+            for (let i = 0; i < filtered.length; i += 6) {
+                if (i + 5 < filtered.length) {
+                    combinations.push(filtered.slice(i, i + 6).sort((a, b) => a - b));
+                }
+            }
+        }
+    }
+
+    return combinations.slice(0, 10); // Limit to 10 for safety
+}
+
+function renderPhotoAnalysisResults(combinations) {
+    if (combinations.length === 0) {
+        photoResultsContainer.innerHTML = '<p class="info-msg" style="text-align:center;">번호를 인식하지 못했습니다. 숫자가 선명하게 보이도록 다시 찍어주세요.</p>';
+        return;
+    }
+
+    let html = `<h3 style="text-align:center; margin:20px 0;">인식된 조합 일괄 분석 (${combinations.length}개)</h3>`;
+    
+    combinations.forEach((myNumbers, idx) => {
+        const winStats = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+        let totalWins = 0;
+
+        allLottoNumbers.forEach(round => {
+            const res = checkRank(myNumbers, round);
+            if (res.rank > 0) {
+                winStats[res.rank]++;
+                totalWins++;
+            }
+        });
+
+        const ballsHtml = `<div class="numbers" style="margin:10px 0;">` + myNumbers.map(n => `<span class="${getBallColorClass(n)}">${n}</span>`).join('') + `</div>`;
+        
+        html += `
+            <div class="stats-card">
+                <div class="pro-label-row">
+                    <span class="game-label">조합 ${idx + 1}</span>
+                    <span class="pro-tag">과거 총 ${totalWins}회 당첨</span>
+                </div>
+                ${ballsHtml}
+                <div class="manual-summary-grid" style="grid-template-columns: repeat(5, 1fr); gap: 5px;">
+                    <div class="summary-item"><span class="rank-label">1등</span> <span class="rank-count">${winStats[1]}</span></div>
+                    <div class="summary-item"><span class="rank-label">2등</span> <span class="rank-count">${winStats[2]}</span></div>
+                    <div class="summary-item"><span class="rank-label">3등</span> <span class="rank-count">${winStats[3]}</span></div>
+                    <div class="summary-item"><span class="rank-label">4등</span> <span class="rank-count">${winStats[4]}</span></div>
+                    <div class="summary-item"><span class="rank-label">5등</span> <span class="rank-count">${winStats[5]}</span></div>
+                </div>
+            </div>
+        `;
+    });
+
+    photoResultsContainer.innerHTML = html;
+    // Scroll to results
+    photoResultsContainer.scrollIntoView({ behavior: 'smooth' });
 }
 
 // --- Simulation View ---

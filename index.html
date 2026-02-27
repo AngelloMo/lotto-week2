@@ -116,7 +116,7 @@
   <section id="photo-view" class="view-section" style="display: none;">
     <div class="recommend-header">
       <h2>사진으로 번호 분석</h2>
-      <p>로또 용지 사진을 올리면 번호를 자동으로 인식하여<br>수동 분석 페이지로 이동합니다.</p>
+      <p>로또 용지 사진을 올리면 번호를 자동으로 인식하여<br>한꺼번에 분석 결과를 보여줍니다.</p>
       
       <div class="upload-area" id="upload-area">
         <input type="file" id="photo-input" accept="image/*" style="display:none">
@@ -134,8 +134,9 @@
         </div>
       </div>
 
-      <button id="photo-analyze-btn" style="display:none; margin-top:15px;">번호 추출 및 분석</button>
+      <button id="photo-analyze-btn" style="display:none; margin-top:15px;">번호 추출 및 일괄 분석</button>
     </div>
+    <div id="photo-results-container"></div>
   </section>
 
   <!-- Simulation View -->
