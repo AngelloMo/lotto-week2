@@ -665,7 +665,16 @@ h1 {
 .upload-area:hover, .upload-area.drag-over {
     background-color: #e3f2fd;
     border-color: #1565c0;
-    transform: scale(1.02);
+    transform: scale(1.01);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.stats-card {
+    animation: fadeIn 0.4s ease-out forwards;
 }
 
 .upload-area img {

@@ -383,16 +383,13 @@ function handleManualReset() {
 if (manualAnalyzeBtn) manualAnalyzeBtn.onclick = handleManualAnalysis;
 if (manualResetBtn) manualResetBtn.onclick = handleManualReset;
 
-// --- Photo Analysis (Drag & Drop + Robust Logic) ---
+// --- Photo Analysis (High-Precision Engine) ---
 if (uploadArea) {
-    // Click to upload
     uploadArea.onclick = () => photoInput.click();
     
-    // Drag & Drop event listeners
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
         uploadArea.addEventListener(eventName, (e) => {
-            e.preventDefault();
-            e.stopPropagation();
+            e.preventDefault(); e.stopPropagation();
         }, false);
     });
 
@@ -405,17 +402,16 @@ if (uploadArea) {
     });
 
     uploadArea.addEventListener('drop', (e) => {
-        const dt = e.dataTransfer;
-        const file = dt.files[0];
-        if (file) handleFile(file);
+        const file = e.dataTransfer.files[0];
+        if (file) handlePhotoFile(file);
     });
 
     photoInput.onchange = (e) => {
         const file = e.target.files[0];
-        if (file) handleFile(file);
+        if (file) handlePhotoFile(file);
     };
     
-    async function handleFile(file) {
+    function handlePhotoFile(file) {
         const reader = new FileReader();
         reader.onload = (e) => {
             photoPreview.src = e.target.result;
@@ -436,28 +432,29 @@ if (uploadArea) {
         photoResultsContainer.innerHTML = '';
         
         try {
-            const processedImg = await preprocessImage(file);
-            const { data: { text } } = await Tesseract.recognize(
+            // Ultra-High Res Preprocessing
+            const processedImg = await preprocessImageV3(file);
+            
+            const { data } = await Tesseract.recognize(
                 processedImg,
                 'eng',
                 {
                     logger: m => {
                         if (m.status === 'recognizing text') {
-                            ocrStatusText.textContent = `정밀 분석 중... ${(m.progress * 100).toFixed(0)}%`;
+                            ocrStatusText.textContent = `인공지능 정밀 판독 중... ${(m.progress * 100).toFixed(0)}%`;
                             ocrProgressBar.style.width = `${m.progress * 100}%`;
                         }
-                    },
-                    // Whitelist includes A-E labels to anchor combinations
-                    tessedit_char_whitelist: '0123456789 ABCDE'
+                    }
                 }
             );
 
-            const combinations = extractAdvancedCombinations(text);
+            // Use spatial data (lines) if available, or robust text parsing
+            const combinations = extractSmartCombinations(data);
             renderPhotoAnalysisResults(combinations);
             
         } catch (err) {
             console.error(err);
-            alert('이미지 분석 중 오류가 발생했습니다. 사진을 다시 찍어주세요.');
+            alert('인식 오류가 발생했습니다. 선명하고 밝은 사진으로 다시 시도해주세요.');
         } finally {
             ocrProgressContainer.style.display = 'none';
             photoAnalyzeBtn.disabled = false;
@@ -466,90 +463,89 @@ if (uploadArea) {
     };
 }
 
-async function preprocessImage(file) {
+async function preprocessImageV3(file) {
     return new Promise((resolve) => {
         const img = new Image();
         img.onload = () => {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
-            const maxDim = 1500;
-            let width = img.width;
-            let height = img.height;
-            if (width > height) {
-                if (width > maxDim) { height *= maxDim / width; width = maxDim; }
-            } else {
-                if (height > maxDim) { width *= maxDim / height; height = maxDim; }
+            const targetWidth = 2400; // Increased resolution
+            const scale = targetWidth / img.width;
+            canvas.width = targetWidth;
+            canvas.height = img.height * scale;
+            
+            // Step 1: Grayscale & High Contrast
+            ctx.filter = 'grayscale(100%) contrast(200%) brightness(95%)';
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            
+            // Step 2: Adaptive-like Thresholding (Manual)
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+            for (let i = 0; i < data.length; i += 4) {
+                const avg = (data[i] + data[i+1] + data[i+2]) / 3;
+                const val = avg > 128 ? 255 : 0; // Simple threshold
+                data[i] = data[i+1] = data[i+2] = val;
             }
-            canvas.width = width;
-            canvas.height = height;
-            // High contrast for OCR
-            ctx.filter = 'grayscale(100%) contrast(160%) brightness(95%)';
-            ctx.drawImage(img, 0, 0, width, height);
+            ctx.putImageData(imageData, 0, 0);
+            
             resolve(canvas.toDataURL('image/png'));
         };
         img.src = typeof file === 'string' ? file : URL.createObjectURL(file);
     });
 }
 
-function extractAdvancedCombinations(text) {
-    // Normalize text
-    const cleanedText = text.replace(/O/g, '0').replace(/l/g, '1').replace(/I/g, '1').replace(/S/g, '5').replace(/B/g, '8');
-    const lines = cleanedText.split('\n');
-    const combinations = [];
-
-    lines.forEach(line => {
-        // Look for typical line pattern: [Label] [Type] [Num1] [Num2]...
-        // Pattern: Optional A-E, then any word (Type), then 6 numbers
-        const numbers = line.match(/\b([1-9]|[1-3][0-9]|4[0-5])\b/g);
+function extractSmartCombinations(ocrData) {
+    const text = ocrData.text.toUpperCase()
+        .replace(/O/g, '0').replace(/[IL|]/g, '1').replace(/S/g, '5')
+        .replace(/B/g, '8').replace(/G/g, '6').replace(/Z/g, '2');
         
-        if (numbers && numbers.length >= 6) {
-            // Find the 6 numbers that are grouped together
-            // Often there's a gap between the "Type" (Manual/Auto) and numbers
-            const uniqueNums = [];
-            const seenInLine = new Set();
-            
-            // Greedily collect 6 distinct numbers from the right side of the line
-            // since numbers are usually at the end of the line
-            for (let i = numbers.length - 1; i >= 0; i--) {
-                const n = parseInt(numbers[i]);
-                if (!seenInLine.has(n)) {
-                    uniqueNums.unshift(n);
-                    seenInLine.add(n);
-                }
-                if (uniqueNums.length === 6) break;
-            }
+    const lines = text.split('\n');
+    const finalCombos = [];
+    const targets = ['A', 'B', 'C', 'D', 'E'];
 
-            if (uniqueNums.length === 6) {
-                const combo = uniqueNums.sort((a, b) => a - b);
-                const sum = combo.reduce((a, b) => a + b, 0);
-                if (sum >= 21 && sum <= 255) {
-                    combinations.push(combo);
-                }
+    // Group 1: Reliable Anchor Lines (Starting with A-E)
+    lines.forEach(line => {
+        const cleanLine = line.trim();
+        // Check if line contains any target anchor
+        const anchor = targets.find(t => cleanLine.startsWith(t) || cleanLine.includes(` ${t} `));
+        if (anchor) {
+            const nums = (cleanLine.match(/\b([1-9]|[1-3][0-9]|4[0-5])\b/g) || []).map(n => parseInt(n));
+            if (nums.length >= 6) {
+                const game = [...new Set(nums.slice(-6))].sort((a, b) => a - b);
+                if (game.length === 6) finalCombos.push({ label: anchor, numbers: game });
             }
         }
     });
 
-    // Final deduplication and limit
-    const seen = new Set();
-    const result = [];
-    combinations.forEach(c => {
-        const key = c.join(',');
-        if (!seen.has(key)) {
-            seen.add(key);
-            result.push(c);
-        }
-    });
+    // Group 2: Pattern Fallback (Any sequence of 6+ numbers not already captured)
+    if (finalCombos.length < 5) {
+        lines.forEach(line => {
+            const nums = (line.match(/\b([1-9]|[1-3][0-9]|4[0-5])\b/g) || []).map(n => parseInt(n));
+            if (nums.length >= 6) {
+                const game = [...new Set(nums.slice(-6))].sort((a, b) => a - b);
+                const key = game.join(',');
+                if (game.length === 6 && !finalCombos.some(c => c.numbers.join(',') === key)) {
+                    finalCombos.push({ label: '?', numbers: game });
+                }
+            }
+        });
+    }
 
-    return result.slice(0, 5);
+    // Sort by Label and Dedup
+    return finalCombos
+        .sort((a, b) => a.label.localeCompare(b.label))
+        .filter((v, i, a) => i === a.findIndex(t => t.numbers.join(',') === v.numbers.join(',')))
+        .slice(0, 5)
+        .map(c => c.numbers);
 }
 
 function renderPhotoAnalysisResults(combinations) {
     if (combinations.length === 0) {
-        photoResultsContainer.innerHTML = '<p class="info-msg" style="text-align:center;">번호를 인식하지 못했습니다.<br>A~E 라벨과 번호 6개가 한 줄에 잘 보이도록 찍어주세요.</p>';
+        photoResultsContainer.innerHTML = '<div class="stats-card" style="border-top:4px solid #d32f2f; margin-top:20px;"><p class="info-msg" style="text-align:center;">⚠️ 번호 인식 실패<br><b>A~E 기호와 숫자 6개</b>가 선명하게 보이도록<br>밝은 곳에서 수평을 맞춰 다시 찍어주세요.</p></div>';
         return;
     }
 
-    let html = `<h3 style="text-align:center; margin:20px 0;">인식 결과 (${combinations.length}개 조합)</h3>`;
+    let html = `<h3 style="text-align:center; margin:30px 0 20px;">🎯 분석 결과 (${combinations.length}개 조합 발견)</h3>`;
     
     combinations.forEach((myNumbers, idx) => {
         const winStats = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
@@ -563,21 +559,21 @@ function renderPhotoAnalysisResults(combinations) {
             }
         });
 
-        const ballsHtml = `<div class="numbers" style="margin:10px 0;">` + myNumbers.map(n => `<span class="${getBallColorClass(n)}">${n}</span>`).join('') + `</div>`;
+        const ballsHtml = `<div class="numbers" style="margin:15px 0;">` + myNumbers.map(n => `<span class="${getBallColorClass(n)}">${n}</span>`).join('') + `</div>`;
         
         html += `
-            <div class="stats-card">
+            <div class="stats-card" style="margin-bottom:20px; border-left: 5px solid #1877f2;">
                 <div class="pro-label-row">
-                    <span class="game-label">${String.fromCharCode(65 + idx)}행 분석</span>
-                    <span class="pro-tag" style="background:#e8f5e9; color:#2e7d32;">과거 당첨: ${totalWins}회</span>
+                    <span class="game-label" style="background:#1877f2; color:white; padding:3px 12px; border-radius:15px; font-size:0.9em;">${String.fromCharCode(65 + idx)}행 판독</span>
+                    <span class="pro-tag" style="background:#fff3f3; color:#d32f2f; font-weight:bold;">과거 총 ${totalWins}회 당첨</span>
                 </div>
                 ${ballsHtml}
                 <div class="manual-summary-grid" style="grid-template-columns: repeat(5, 1fr); gap: 5px;">
-                    <div class="summary-item"><span class="rank-label">1등</span> <span class="rank-count">${winStats[1]}</span></div>
-                    <div class="summary-item"><span class="rank-label">2등</span> <span class="rank-count">${winStats[2]}</span></div>
-                    <div class="summary-item"><span class="rank-label">3등</span> <span class="rank-count">${winStats[3]}</span></div>
-                    <div class="summary-item"><span class="rank-label">4등</span> <span class="rank-count">${winStats[4]}</span></div>
-                    <div class="summary-item"><span class="rank-label">5등</span> <span class="rank-count">${winStats[5]}</span></div>
+                    <div class="summary-item"><span class="rank-label">1등</span> <span class="rank-count" style="color:${winStats[1]>0?'#d32f2f':'#ccc'}">${winStats[1]}</span></div>
+                    <div class="summary-item"><span class="rank-label">2등</span> <span class="rank-count" style="color:${winStats[2]>0?'#d32f2f':'#ccc'}">${winStats[2]}</span></div>
+                    <div class="summary-item"><span class="rank-label">3등</span> <span class="rank-count" style="color:${winStats[3]>0?'#d32f2f':'#ccc'}">${winStats[3]}</span></div>
+                    <div class="summary-item"><span class="rank-label">4등</span> <span class="rank-count" style="color:${winStats[4]>0?'#d32f2f':'#ccc'}">${winStats[4]}</span></div>
+                    <div class="summary-item"><span class="rank-label">5등</span> <span class="rank-count" style="color:${winStats[5]>0?'#d32f2f':'#ccc'}">${winStats[5]}</span></div>
                 </div>
             </div>
         `;
@@ -874,6 +870,7 @@ function renderAIPro() {
             let attempts = 0;
             while(attempts < 1000) {
                 attempts++;
+                const candidate = [];
                 const poolNormal = [];
                 for(let i=1; i<=45; i++) if(!hotNumbers.includes(i) && !coldNumbers.includes(i)) poolNormal.push(i);
                 const pick = (arr, count) => {
