@@ -8,8 +8,10 @@ const historyView = document.getElementById('history-view');
 const searchView = document.getElementById('search-view');
 const recommendView = document.getElementById('recommend-view');
 const analysisView = document.getElementById('analysis-view');
+const aiProView = document.getElementById('ai-pro-view');
 const performanceView = document.getElementById('performance-view');
 const statsView = document.getElementById('stats-view');
+const statsRecentView = document.getElementById('stats-recent-view');
 const collisionView = document.getElementById('collision-view');
 
 const lottoNumbersContainer = document.getElementById('lotto-numbers-container');
@@ -21,18 +23,23 @@ const recommendContainer = document.getElementById('recommend-container');
 const generateBtn = document.getElementById('generate-btn');
 const analysisContainer = document.getElementById('analysis-container');
 const analysisGenerateBtn = document.getElementById('analysis-generate-btn');
+const aiProContainer = document.getElementById('ai-pro-container');
+const aiProGenerateBtn = document.getElementById('ai-pro-generate-btn');
 const performanceSelect = document.getElementById('performance-select');
 const performanceButton = document.getElementById('performance-button');
 const performanceResultContainer = document.getElementById('performance-result-container');
 const statsContainer = document.getElementById('stats-container');
+const statsRecentContainer = document.getElementById('stats-recent-container');
 const collisionContainer = document.getElementById('collision-container');
 
 const navHistoryBtn = document.getElementById('nav-history');
 const navSearchBtn = document.getElementById('nav-search');
 const navRecommendBtn = document.getElementById('nav-recommend');
 const navAnalysisBtn = document.getElementById('nav-analysis');
+const navAiProBtn = document.getElementById('nav-ai-pro');
 const navPerformanceBtn = document.getElementById('nav-performance');
 const navStatsBtn = document.getElementById('nav-stats');
+const navStatsRecentBtn = document.getElementById('nav-stats-recent');
 const navCollisionBtn = document.getElementById('nav-collision');
 
 let allLottoNumbers = [];
@@ -40,16 +47,17 @@ let currentPage = 1;
 
 // --- View Toggling ---
 function switchView(viewName) {
-  [historyView, searchView, recommendView, analysisView, performanceView, statsView, collisionView].forEach(v => v.style.display = 'none');
-  const viewMap = { history: historyView, search: searchView, recommend: recommendView, analysis: analysisView, performance: performanceView, stats: statsView, collision: collisionView };
+  [historyView, searchView, recommendView, analysisView, aiProView, performanceView, statsView, statsRecentView, collisionView].forEach(v => { if(v) v.style.display = 'none'; });
+  const viewMap = { history: historyView, search: searchView, recommend: recommendView, analysis: analysisView, 'ai-pro': aiProView, performance: performanceView, stats: statsView, 'stats-recent': statsRecentView, collision: collisionView };
   if (viewMap[viewName]) viewMap[viewName].style.display = 'block';
 
-  [navHistoryBtn, navSearchBtn, navRecommendBtn, navAnalysisBtn, navPerformanceBtn, navStatsBtn, navCollisionBtn].forEach(b => b.classList.remove('active'));
-  const btnMap = { history: navHistoryBtn, search: navSearchBtn, recommend: navRecommendBtn, analysis: navAnalysisBtn, performance: navPerformanceBtn, stats: navStatsBtn, collision: navCollisionBtn };
+  [navHistoryBtn, navSearchBtn, navRecommendBtn, navAnalysisBtn, navAiProBtn, navPerformanceBtn, navStatsBtn, navStatsRecentBtn, navCollisionBtn].forEach(b => { if(b) b.classList.remove('active'); });
+  const btnMap = { history: navHistoryBtn, search: navSearchBtn, recommend: navRecommendBtn, analysis: navAnalysisBtn, 'ai-pro': navAiProBtn, performance: navPerformanceBtn, stats: navStatsBtn, 'stats-recent': navStatsRecentBtn, collision: navCollisionBtn };
   if (btnMap[viewName]) btnMap[viewName].classList.add('active');
 
   if (viewName === 'history') renderHistory(currentPage);
   if (viewName === 'stats') renderStats();
+  if (viewName === 'stats-recent') renderStatsRecent();
   if (viewName === 'collision') renderCollisions();
 }
 
@@ -57,8 +65,10 @@ if (navHistoryBtn) navHistoryBtn.onclick = () => switchView('history');
 if (navSearchBtn) navSearchBtn.onclick = () => switchView('search');
 if (navRecommendBtn) navRecommendBtn.onclick = () => switchView('recommend');
 if (navAnalysisBtn) navAnalysisBtn.onclick = () => switchView('analysis');
+if (navAiProBtn) navAiProBtn.onclick = () => switchView('ai-pro');
 if (navPerformanceBtn) navPerformanceBtn.onclick = () => switchView('performance');
 if (navStatsBtn) navStatsBtn.onclick = () => switchView('stats');
+if (navStatsRecentBtn) navStatsRecentBtn.onclick = () => switchView('stats-recent');
 if (navCollisionBtn) navCollisionBtn.onclick = () => switchView('collision');
 
 // --- Helper Functions ---
@@ -286,6 +296,42 @@ function renderStats() {
     }, 100);
 }
 
+function renderStatsRecent() {
+    statsRecentContainer.innerHTML = '<p style="text-align:center;">분석 중입니다... 잠시만 기다려주세요.</p>';
+    setTimeout(() => {
+        const counts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 0: 0 };
+        const dataSorted = [...allLottoNumbers].sort((a, b) => a.drwNo - b.drwNo);
+        const startIndex = dataSorted.findIndex(d => d.drwNo >= 1000);
+        if (startIndex === -1) {
+            statsRecentContainer.innerHTML = '<p class="info-msg">분석 대상 데이터가 부족합니다 (1000회 이상).</p>';
+            return;
+        }
+        for (let i = startIndex; i < dataSorted.length; i++) {
+            const current = dataSorted[i];
+            const myNumbers = [current.drwtNo1, current.drwtNo2, current.drwtNo3, current.drwtNo4, current.drwtNo5, current.drwtNo6];
+            let bestRank = 99;
+            for (let j = 0; j < i; j++) {
+                const prev = dataSorted[j];
+                const res = checkRank(myNumbers, prev);
+                if (res.rank > 0 && res.rank < bestRank) bestRank = res.rank;
+            }
+            counts[bestRank === 99 ? 0 : bestRank]++;
+        }
+        const total = dataSorted.length - startIndex;
+        const maxCount = Math.max(...Object.values(counts));
+        let html = `<div class="stats-card"><h3>성적 분포 결과 (대상: ${total}개 회차)</h3><div class="histogram">`;
+        [1, 2, 3, 4, 5, 0].forEach(rank => {
+            const label = rank === 0 ? '꽝' : `${rank}등`;
+            const count = counts[rank];
+            const percent = ((count / total) * 100).toFixed(1);
+            const barWidth = ((count / maxCount) * 100).toFixed(1);
+            html += `<div class="hist-row"><div class="hist-label">${label}</div><div class="hist-bar-container"><div class="hist-bar" style="width: ${barWidth}%"></div><div class="hist-value">${count}건 (${percent}%)</div></div></div>`;
+        });
+        html += '</div></div>';
+        statsRecentContainer.innerHTML = html;
+    }, 100);
+}
+
 // --- Collision View Logic ---
 function renderCollisions() {
     collisionContainer.innerHTML = '<p style="text-align:center;">중복 데이터를 분석하고 있습니다... (약 5-10초 소요)</p>';
@@ -335,6 +381,128 @@ function renderCollisions() {
         collisionContainer.innerHTML = html;
     }, 100);
 }
+
+// --- AI Pro View ---
+function renderAIPro() {
+    if (!allLottoNumbers || allLottoNumbers.length === 0) return;
+    
+    aiProContainer.innerHTML = '<p style="text-align:center;">AI 패턴 분석 중...</p>';
+    
+    setTimeout(() => {
+        // 1. Frequency Analysis
+        const freq = Array(46).fill(0);
+        const recent100Freq = Array(46).fill(0);
+        const lastAppearance = Array(46).fill(0);
+        
+        const sortedData = [...allLottoNumbers].sort((a, b) => a.drwNo - b.drwNo);
+        const totalRounds = sortedData.length;
+        
+        sortedData.forEach((item, idx) => {
+            const nums = [item.drwtNo1, item.drwtNo2, item.drwtNo3, item.drwtNo4, item.drwtNo5, item.drwtNo6];
+            nums.forEach(n => {
+                freq[n]++;
+                if (idx >= totalRounds - 100) recent100Freq[n]++;
+                lastAppearance[n] = item.drwNo;
+            });
+        });
+
+        const latestRound = sortedData[totalRounds - 1].drwNo;
+        const hotNumbers = [];
+        const coldNumbers = [];
+        
+        // Identify Hot (top 10 in recent 100) and Cold (not in last 30)
+        const recentSorted = [];
+        for(let i=1; i<=45; i++) recentSorted.push({num: i, count: recent100Freq[i]});
+        recentSorted.sort((a, b) => b.count - a.count);
+        for(let i=0; i<10; i++) hotNumbers.push(recentSorted[i].num);
+        
+        for(let i=1; i<=45; i++) {
+            if (latestRound - lastAppearance[i] >= 30) coldNumbers.push(i);
+        }
+
+        aiProContainer.innerHTML = '';
+        
+        // Generate 5 Pro Combinations
+        for (let c = 1; c <= 5; c++) {
+            let myNumbers = [];
+            let attempts = 0;
+            
+            while(attempts < 1000) {
+                attempts++;
+                const candidate = [];
+                // Pick 2 from Hot, 1 from Cold, 3 from others (or slightly different mix)
+                const poolHot = hotNumbers.filter(n => !candidate.includes(n));
+                const poolCold = coldNumbers.filter(n => !candidate.includes(n));
+                const poolNormal = [];
+                for(let i=1; i<=45; i++) if(!hotNumbers.includes(i) && !coldNumbers.includes(i)) poolNormal.push(i);
+
+                // Mix logic
+                const pick = (arr, count) => {
+                    const shuffled = [...arr].sort(() => 0.5 - Math.random());
+                    return shuffled.slice(0, count);
+                };
+
+                const selected = [
+                    ...pick(hotNumbers, 2),
+                    ...pick(coldNumbers, 1),
+                    ...pick(poolNormal, 3)
+                ];
+                
+                if (new Set(selected).size !== 6) continue;
+                selected.sort((a, b) => a - b);
+                
+                // Pattern Filters
+                const sum = selected.reduce((a, b) => a + b, 0);
+                const odds = selected.filter(n => n % 2 !== 0).length;
+                
+                if (sum >= 100 && sum <= 175 && odds >= 2 && odds <= 4) {
+                    myNumbers = selected;
+                    break;
+                }
+            }
+            
+            if (myNumbers.length === 0) myNumbers = generateRandomNumbers();
+
+            const card = document.createElement('div');
+            card.classList.add('recommend-card');
+            card.style.borderLeft = '4px solid #4a90e2';
+            
+            let ballsHtml = `<div class="numbers">` + myNumbers.map(n => {
+                let extraClass = '';
+                if (hotNumbers.includes(n)) extraClass = 'hot-num';
+                if (coldNumbers.includes(n)) extraClass = 'cold-num';
+                return `<span class="${getBallColorClass(n)} ${extraClass}">${n}</span>`;
+            }).join('') + `</div>`;
+            
+            const sum = myNumbers.reduce((a, b) => a + b, 0);
+            const odds = myNumbers.filter(n => n % 2 !== 0).length;
+            const evens = 6 - odds;
+            
+            card.innerHTML = `
+                <div class="pro-label-row">
+                    <span class="game-label">AI 조합 ${c}</span>
+                    <span class="pro-tag">패턴 분석 완료</span>
+                </div>
+                ${ballsHtml}
+                <div class="pattern-info">
+                    <span>합계: ${sum}</span>
+                    <span>홀짝: ${odds}:${evens}</span>
+                </div>
+            `;
+            aiProContainer.appendChild(card);
+        }
+        
+        const legend = document.createElement('div');
+        legend.className = 'analysis-legend';
+        legend.innerHTML = `
+            <div class="legend-item"><span class="dot hot"></span> 최근 자주 출현 (Hot)</div>
+            <div class="legend-item"><span class="dot cold"></span> 장기 미출현 (Cold)</div>
+        `;
+        aiProContainer.prepend(legend);
+        
+    }, 500);
+}
+if (aiProGenerateBtn) aiProGenerateBtn.onclick = renderAIPro;
 
 // --- Initialization ---
 async function loadLottoData() {

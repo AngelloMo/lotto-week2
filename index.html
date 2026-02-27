@@ -17,9 +17,11 @@
     <button id="nav-search">회차 검색</button>
     <button id="nav-performance">회차별 성적</button>
     <button id="nav-stats">성적 통계</button>
+    <button id="nav-stats-recent">성적 통계(1000+)</button>
     <button id="nav-collision">중복 당첨 분석</button>
     <button id="nav-recommend">번호 추천</button>
     <button id="nav-analysis">분석 추천</button>
+    <button id="nav-ai-pro">AI 고급 추천</button>
   </nav>
 
   <div id="loading-indicator">데이터를 불러오는 중...</div>
@@ -61,6 +63,15 @@
     <div id="stats-container"></div>
   </section>
 
+  <!-- Recent Stats View -->
+  <section id="stats-recent-view" class="view-section" style="display: none;">
+    <div class="recommend-header">
+      <h2>최근 성적 분포 (1000회 이후)</h2>
+      <p>1000회부터 최신 회차까지의 1등 번호들이<br>해당 회차 이전 과거에 기록했던 최고 순위 분포입니다.</p>
+    </div>
+    <div id="stats-recent-container"></div>
+  </section>
+
   <!-- Collision View -->
   <section id="collision-view" class="view-section" style="display: none;">
     <div class="recommend-header">
@@ -88,6 +99,17 @@
       <button id="analysis-generate-btn">분석 번호 생성</button>
     </div>
     <div id="analysis-container"></div>
+  </section>
+
+  <!-- AI Advanced Recommend View -->
+  <section id="ai-pro-view" class="view-section" style="display: none;">
+    <div class="recommend-header">
+      <h2>AI 패턴 분석 고급 추천</h2>
+      <p>역대 당첨 데이터를 분석하여 최적의 조합을 생성합니다.<br>
+      (출현 빈도, 미출현 번호, 홀짝 비율, 총합 범위를 고려)</p>
+      <button id="ai-pro-generate-btn">AI 고급 분석 번호 생성</button>
+    </div>
+    <div id="ai-pro-container"></div>
   </section>
 
   <script defer type="text/javascript" src="/main.js"></script>
