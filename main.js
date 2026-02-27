@@ -10,6 +10,7 @@ const recommendView = document.getElementById('recommend-view');
 const analysisView = document.getElementById('analysis-view');
 const aiProView = document.getElementById('ai-pro-view');
 const manualCheckView = document.getElementById('manual-check-view');
+const simulationView = document.getElementById('simulation-view');
 const performanceView = document.getElementById('performance-view');
 const statsView = document.getElementById('stats-view');
 const statsRecentView = document.getElementById('stats-recent-view');
@@ -32,6 +33,8 @@ const selectedNumbersDisplay = document.getElementById('selected-numbers-display
 const manualAnalyzeBtn = document.getElementById('manual-analyze-btn');
 const manualResetBtn = document.getElementById('manual-reset-btn');
 const manualCheckResultContainer = document.getElementById('manual-check-result-container');
+const simulationRunBtn = document.getElementById('simulation-run-btn');
+const simulationResultContainer = document.getElementById('simulation-result-container');
 const performanceSelect = document.getElementById('performance-select');
 const performanceButton = document.getElementById('performance-button');
 const performanceResultContainer = document.getElementById('performance-result-container');
@@ -46,6 +49,7 @@ const navRecommendBtn = document.getElementById('nav-recommend');
 const navAnalysisBtn = document.getElementById('nav-analysis');
 const navAiProBtn = document.getElementById('nav-ai-pro');
 const navManualCheckBtn = document.getElementById('nav-manual-check');
+const navSimulationBtn = document.getElementById('nav-simulation');
 const navPerformanceBtn = document.getElementById('nav-performance');
 const navStatsBtn = document.getElementById('nav-stats');
 const navStatsRecentBtn = document.getElementById('nav-stats-recent');
@@ -58,12 +62,12 @@ let manualSelectedNumbers = [];
 
 // --- View Toggling ---
 function switchView(viewName) {
-  [historyView, searchView, recommendView, analysisView, aiProView, manualCheckView, performanceView, statsView, statsRecentView, collisionView, collisionStatsView].forEach(v => { if(v) v.style.display = 'none'; });
-  const viewMap = { history: historyView, search: searchView, recommend: recommendView, analysis: analysisView, 'ai-pro': aiProView, 'manual-check': manualCheckView, performance: performanceView, stats: statsView, 'stats-recent': statsRecentView, collision: collisionView, 'collision-stats': collisionStatsView };
+  [historyView, searchView, recommendView, analysisView, aiProView, manualCheckView, simulationView, performanceView, statsView, statsRecentView, collisionView, collisionStatsView].forEach(v => { if(v) v.style.display = 'none'; });
+  const viewMap = { history: historyView, search: searchView, recommend: recommendView, analysis: analysisView, 'ai-pro': aiProView, 'manual-check': manualCheckView, simulation: simulationView, performance: performanceView, stats: statsView, 'stats-recent': statsRecentView, collision: collisionView, 'collision-stats': collisionStatsView };
   if (viewMap[viewName]) viewMap[viewName].style.display = 'block';
 
-  [navHistoryBtn, navSearchBtn, navRecommendBtn, navAnalysisBtn, navAiProBtn, navManualCheckBtn, navPerformanceBtn, navStatsBtn, navStatsRecentBtn, navCollisionBtn, navCollisionStatsBtn].forEach(b => { if(b) b.classList.remove('active'); });
-  const btnMap = { history: navHistoryBtn, search: navSearchBtn, recommend: navRecommendBtn, analysis: navAnalysisBtn, 'ai-pro': navAiProBtn, 'manual-check': navManualCheckBtn, performance: navPerformanceBtn, stats: navStatsBtn, 'stats-recent': navStatsRecentBtn, collision: navCollisionBtn, 'collision-stats': navCollisionStatsBtn };
+  [navHistoryBtn, navSearchBtn, navRecommendBtn, navAnalysisBtn, navAiProBtn, navManualCheckBtn, navSimulationBtn, navPerformanceBtn, navStatsBtn, navStatsRecentBtn, navCollisionBtn, navCollisionStatsBtn].forEach(b => { if(b) b.classList.remove('active'); });
+  const btnMap = { history: navHistoryBtn, search: navSearchBtn, recommend: navRecommendBtn, analysis: navAnalysisBtn, 'ai-pro': navAiProBtn, 'manual-check': navManualCheckBtn, simulation: navSimulationBtn, performance: navPerformanceBtn, stats: navStatsBtn, 'stats-recent': navStatsRecentBtn, collision: navCollisionBtn, 'collision-stats': navCollisionStatsBtn };
   if (btnMap[viewName]) btnMap[viewName].classList.add('active');
 
   if (viewName === 'history') renderHistory(currentPage);
@@ -80,6 +84,7 @@ if (navRecommendBtn) navRecommendBtn.onclick = () => switchView('recommend');
 if (navAnalysisBtn) navAnalysisBtn.onclick = () => switchView('analysis');
 if (navAiProBtn) navAiProBtn.onclick = () => switchView('ai-pro');
 if (navManualCheckBtn) navManualCheckBtn.onclick = () => switchView('manual-check');
+if (navSimulationBtn) navSimulationBtn.onclick = () => switchView('simulation');
 if (navPerformanceBtn) navPerformanceBtn.onclick = () => switchView('performance');
 if (navStatsBtn) navStatsBtn.onclick = () => switchView('stats');
 if (navStatsRecentBtn) navStatsRecentBtn.onclick = () => switchView('stats-recent');
@@ -360,6 +365,59 @@ function handleManualReset() {
 
 if (manualAnalyzeBtn) manualAnalyzeBtn.onclick = handleManualAnalysis;
 if (manualResetBtn) manualResetBtn.onclick = handleManualReset;
+
+// --- Simulation View ---
+function runSimulation() {
+    simulationResultContainer.innerHTML = '<p style="text-align:center;">1,000개 조합 생성 및 과거 성적 분석 중... (약 2-3초 소요)</p>';
+    
+    setTimeout(() => {
+        const WEIGHTS = { 1: 1000, 2: 500, 3: 400, 4: 200, 5: 100 };
+        const combinations = [];
+        
+        for (let i = 0; i < 1000; i++) {
+            const myNumbers = generateRandomNumbers();
+            const stats = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+            let totalScore = 0;
+            
+            allLottoNumbers.forEach(round => {
+                const res = checkRank(myNumbers, round);
+                if (res.rank > 0) {
+                    stats[res.rank]++;
+                    totalScore += WEIGHTS[res.rank];
+                }
+            });
+            
+            combinations.push({ numbers: myNumbers, stats, score: totalScore });
+        }
+        
+        combinations.sort((a, b) => b.score - a.score || b.stats[1] - a.stats[1]);
+        const top3 = combinations.slice(0, 3);
+        
+        let html = '';
+        top3.forEach((item, index) => {
+            const ballsHtml = `<div class="numbers">` + item.numbers.map(n => `<span class="${getBallColorClass(n)}">${n}</span>`).join('') + `</div>`;
+            html += `
+                <div class="stats-card" style="border-top: 5px solid ${index === 0 ? '#d32f2f' : (index === 1 ? '#fbc02d' : '#757575')}">
+                    <div class="pro-label-row">
+                        <span class="game-label" style="font-size:1.2em;">🏆 Top ${index + 1} 위</span>
+                        <span class="pro-tag" style="background:#fff3f3; color:#d32f2f;">누적 점수: ${item.score}점</span>
+                    </div>
+                    ${ballsHtml}
+                    <div class="manual-summary-grid" style="margin-top:10px;">
+                        <div class="summary-item"><span class="rank-label">1등</span> <span class="rank-count">${item.stats[1]}회</span></div>
+                        <div class="summary-item"><span class="rank-label">2등</span> <span class="rank-count">${item.stats[2]}회</span></div>
+                        <div class="summary-item"><span class="rank-label">3등</span> <span class="rank-count">${item.stats[3]}회</span></div>
+                        <div class="summary-item"><span class="rank-label">4등</span> <span class="rank-count">${item.stats[4]}회</span></div>
+                        <div class="summary-item"><span class="rank-label">5등</span> <span class="rank-count">${item.stats[5]}회</span></div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        simulationResultContainer.innerHTML = html;
+    }, 100);
+}
+if (simulationRunBtn) simulationRunBtn.onclick = runSimulation;
 
 // --- Performance View ---
 function handlePerformance() {

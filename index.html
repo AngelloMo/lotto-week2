@@ -21,6 +21,7 @@
     <button id="nav-collision">중복 당첨 분석</button>
     <button id="nav-collision-stats">중복 번호 통계</button>
     <button id="nav-manual-check">수동 번호 분석</button>
+    <button id="nav-simulation">Top 1000 시뮬</button>
     <button id="nav-recommend">번호 추천</button>
     <button id="nav-analysis">분석 추천</button>
     <button id="nav-ai-pro">AI 고급 추천</button>
@@ -107,6 +108,17 @@
       </div>
     </div>
     <div id="manual-check-result-container"></div>
+  </section>
+
+  <!-- Simulation View -->
+  <section id="simulation-view" class="view-section" style="display: none;">
+    <div class="recommend-header">
+      <h2>Top 1000 시뮬레이션 분석</h2>
+      <p>번호 조합 1,000개를 즉석에서 생성하고<br>과거 성적 점수가 가장 높은 최강의 조합 Top 3를 찾습니다.</p>
+      <p style="font-size:0.8em; color:#888;">(1등: 1000점, 2등: 500점, 3등: 400점, 4등: 200점, 5등: 100점)</p>
+      <button id="simulation-run-btn">시뮬레이션 시작 (1,000개 조합)</button>
+    </div>
+    <div id="simulation-result-container"></div>
   </section>
 
   <!-- Recommend View -->
