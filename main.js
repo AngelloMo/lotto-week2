@@ -30,6 +30,7 @@ const aiProGenerateBtn = document.getElementById('ai-pro-generate-btn');
 const manualSelectionGrid = document.getElementById('manual-selection-grid');
 const selectedNumbersDisplay = document.getElementById('selected-numbers-display');
 const manualAnalyzeBtn = document.getElementById('manual-analyze-btn');
+const manualResetBtn = document.getElementById('manual-reset-btn');
 const manualCheckResultContainer = document.getElementById('manual-check-result-container');
 const performanceSelect = document.getElementById('performance-select');
 const performanceButton = document.getElementById('performance-button');
@@ -243,7 +244,16 @@ if (analysisGenerateBtn) analysisGenerateBtn.onclick = renderAnalysis;
 
 // --- Manual Check View ---
 function renderManualSelection() {
-    if (manualSelectionGrid.children.length > 0) return; // Prevent double render
+    if (manualSelectionGrid.children.length > 0) {
+        // Just clear selection if already rendered
+        const buttons = manualSelectionGrid.querySelectorAll('.manual-ball-btn');
+        buttons.forEach(btn => {
+            const num = parseInt(btn.textContent);
+            if (manualSelectedNumbers.includes(num)) btn.classList.add('selected');
+            else btn.classList.remove('selected');
+        });
+        return;
+    }
     
     for (let i = 1; i <= 45; i++) {
         const btn = document.createElement('button');
@@ -339,7 +349,17 @@ function handleManualAnalysis() {
         manualCheckResultContainer.innerHTML = html;
     }, 100);
 }
+
+function handleManualReset() {
+    manualSelectedNumbers = [];
+    const buttons = manualSelectionGrid.querySelectorAll('.manual-ball-btn');
+    buttons.forEach(btn => btn.classList.remove('selected'));
+    updateManualSelectionUI();
+    manualCheckResultContainer.innerHTML = '';
+}
+
 if (manualAnalyzeBtn) manualAnalyzeBtn.onclick = handleManualAnalysis;
+if (manualResetBtn) manualResetBtn.onclick = handleManualReset;
 
 // --- Performance View ---
 function handlePerformance() {

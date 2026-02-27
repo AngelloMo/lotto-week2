@@ -391,6 +391,21 @@ h1 {
   cursor: pointer;
 }
 
+.secondary-btn {
+    background-color: #f0f2f5 !important;
+    color: #333 !important;
+    border: 1px solid #ddd !important;
+}
+
+.secondary-btn:hover {
+    background-color: #e4e6e9 !important;
+}
+
+.recommend-header button:disabled {
+    background: #ccc !important;
+    cursor: not-allowed;
+}
+
 .recommend-card {
   background: white;
   padding: 15px;
