@@ -383,27 +383,52 @@ function handleManualReset() {
 if (manualAnalyzeBtn) manualAnalyzeBtn.onclick = handleManualAnalysis;
 if (manualResetBtn) manualResetBtn.onclick = handleManualReset;
 
-// --- Photo Analysis (Enhanced) ---
+// --- Photo Analysis (Drag & Drop + Robust Logic) ---
 if (uploadArea) {
+    // Click to upload
     uploadArea.onclick = () => photoInput.click();
     
+    // Drag & Drop event listeners
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        uploadArea.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+        }, false);
+    });
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+        uploadArea.addEventListener(eventName, () => uploadArea.classList.add('drag-over'), false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        uploadArea.addEventListener(eventName, () => uploadArea.classList.remove('drag-over'), false);
+    });
+
+    uploadArea.addEventListener('drop', (e) => {
+        const dt = e.dataTransfer;
+        const file = dt.files[0];
+        if (file) handleFile(file);
+    });
+
     photoInput.onchange = (e) => {
         const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                photoPreview.src = e.target.result;
-                photoPreview.style.display = 'block';
-                uploadPlaceholder.style.display = 'none';
-                photoAnalyzeBtn.style.display = 'block';
-                photoResultsContainer.innerHTML = '';
-            };
-            reader.readAsDataURL(file);
-        }
+        if (file) handleFile(file);
     };
     
+    async function handleFile(file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            photoPreview.src = e.target.result;
+            photoPreview.style.display = 'block';
+            uploadPlaceholder.style.display = 'none';
+            photoAnalyzeBtn.style.display = 'block';
+            photoResultsContainer.innerHTML = '';
+        };
+        reader.readAsDataURL(file);
+    }
+    
     photoAnalyzeBtn.onclick = async () => {
-        const file = photoInput.files[0];
+        const file = photoInput.files[0] || (photoPreview.src ? await fetch(photoPreview.src).then(r => r.blob()) : null);
         if (!file) return;
         
         ocrProgressContainer.style.display = 'block';
@@ -411,9 +436,7 @@ if (uploadArea) {
         photoResultsContainer.innerHTML = '';
         
         try {
-            // Pre-process image for better OCR
             const processedImg = await preprocessImage(file);
-            
             const { data: { text } } = await Tesseract.recognize(
                 processedImg,
                 'eng',
@@ -424,11 +447,12 @@ if (uploadArea) {
                             ocrProgressBar.style.width = `${m.progress * 100}%`;
                         }
                     },
-                    tessedit_char_whitelist: '0123456789 ABCDE' // Added labels
+                    // Whitelist includes A-E labels to anchor combinations
+                    tessedit_char_whitelist: '0123456789 ABCDE'
                 }
             );
 
-            const combinations = extractRobustCombinations(text);
+            const combinations = extractAdvancedCombinations(text);
             renderPhotoAnalysisResults(combinations);
             
         } catch (err) {
@@ -442,15 +466,12 @@ if (uploadArea) {
     };
 }
 
-// Image preprocessing to improve OCR
 async function preprocessImage(file) {
     return new Promise((resolve) => {
         const img = new Image();
         img.onload = () => {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
-            
-            // Normalize size
             const maxDim = 1500;
             let width = img.width;
             let height = img.height;
@@ -459,70 +480,76 @@ async function preprocessImage(file) {
             } else {
                 if (height > maxDim) { width *= maxDim / height; height = maxDim; }
             }
-            
             canvas.width = width;
             canvas.height = height;
-            
-            // 1. Grayscale & High Contrast
-            ctx.filter = 'grayscale(100%) contrast(150%) brightness(90%)';
+            // High contrast for OCR
+            ctx.filter = 'grayscale(100%) contrast(160%) brightness(95%)';
             ctx.drawImage(img, 0, 0, width, height);
-            
             resolve(canvas.toDataURL('image/png'));
         };
-        img.src = URL.createObjectURL(file);
+        img.src = typeof file === 'string' ? file : URL.createObjectURL(file);
     });
 }
 
-function extractRobustCombinations(text) {
+function extractAdvancedCombinations(text) {
+    // Normalize text
     const cleanedText = text.replace(/O/g, '0').replace(/l/g, '1').replace(/I/g, '1').replace(/S/g, '5').replace(/B/g, '8');
     const lines = cleanedText.split('\n');
     const combinations = [];
 
     lines.forEach(line => {
-        // Find numbers between 1-45
-        const matches = line.match(/\b([1-9]|[1-3][0-9]|4[0-5])\b/g);
-        if (matches) {
-            const nums = matches.map(m => parseInt(m));
-            // A valid combination must have 6 UNIQUE numbers
-            const uniqueNums = [...new Set(nums)];
+        // Look for typical line pattern: [Label] [Type] [Num1] [Num2]...
+        // Pattern: Optional A-E, then any word (Type), then 6 numbers
+        const numbers = line.match(/\b([1-9]|[1-3][0-9]|4[0-5])\b/g);
+        
+        if (numbers && numbers.length >= 6) {
+            // Find the 6 numbers that are grouped together
+            // Often there's a gap between the "Type" (Manual/Auto) and numbers
+            const uniqueNums = [];
+            const seenInLine = new Set();
             
-            if (uniqueNums.length >= 6) {
-                // Take the 6 numbers that are likely lotto numbers
-                // (Lottery tickets usually have 6 numbers grouped together)
-                for (let i = 0; i <= uniqueNums.length - 6; i++) {
-                    const combo = uniqueNums.slice(i, i + 6).sort((a, b) => a - b);
-                    // Basic sanity check: sum should be in typical range
-                    const sum = combo.reduce((a, b) => a + b, 0);
-                    if (sum >= 21 && sum <= 255) {
-                        combinations.push(combo);
-                        break; // Only one combo per line usually
-                    }
+            // Greedily collect 6 distinct numbers from the right side of the line
+            // since numbers are usually at the end of the line
+            for (let i = numbers.length - 1; i >= 0; i--) {
+                const n = parseInt(numbers[i]);
+                if (!seenInLine.has(n)) {
+                    uniqueNums.unshift(n);
+                    seenInLine.add(n);
+                }
+                if (uniqueNums.length === 6) break;
+            }
+
+            if (uniqueNums.length === 6) {
+                const combo = uniqueNums.sort((a, b) => a - b);
+                const sum = combo.reduce((a, b) => a + b, 0);
+                if (sum >= 21 && sum <= 255) {
+                    combinations.push(combo);
                 }
             }
         }
     });
 
-    // Deduplicate combinations
+    // Final deduplication and limit
     const seen = new Set();
-    const finalCombos = [];
+    const result = [];
     combinations.forEach(c => {
         const key = c.join(',');
         if (!seen.has(key)) {
             seen.add(key);
-            finalCombos.push(c);
+            result.push(c);
         }
     });
 
-    return finalCombos.slice(0, 5); // Return top 5 games
+    return result.slice(0, 5);
 }
 
 function renderPhotoAnalysisResults(combinations) {
     if (combinations.length === 0) {
-        photoResultsContainer.innerHTML = '<p class="info-msg" style="text-align:center;">번호를 인식하지 못했습니다.<br>로또 용지의 번호 부분만 밝고 평평하게 찍어주세요.</p>';
+        photoResultsContainer.innerHTML = '<p class="info-msg" style="text-align:center;">번호를 인식하지 못했습니다.<br>A~E 라벨과 번호 6개가 한 줄에 잘 보이도록 찍어주세요.</p>';
         return;
     }
 
-    let html = `<h3 style="text-align:center; margin:20px 0;">인식된 조합 일괄 분석 (${combinations.length}개)</h3>`;
+    let html = `<h3 style="text-align:center; margin:20px 0;">인식 결과 (${combinations.length}개 조합)</h3>`;
     
     combinations.forEach((myNumbers, idx) => {
         const winStats = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
@@ -541,7 +568,7 @@ function renderPhotoAnalysisResults(combinations) {
         html += `
             <div class="stats-card">
                 <div class="pro-label-row">
-                    <span class="game-label">게임 ${String.fromCharCode(65 + idx)}</span>
+                    <span class="game-label">${String.fromCharCode(65 + idx)}행 분석</span>
                     <span class="pro-tag" style="background:#e8f5e9; color:#2e7d32;">과거 당첨: ${totalWins}회</span>
                 </div>
                 ${ballsHtml}

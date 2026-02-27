@@ -662,9 +662,10 @@ h1 {
     align-items: center;
 }
 
-.upload-area:hover {
+.upload-area:hover, .upload-area.drag-over {
     background-color: #e3f2fd;
     border-color: #1565c0;
+    transform: scale(1.02);
 }
 
 .upload-area img {
