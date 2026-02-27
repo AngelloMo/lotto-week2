@@ -9,6 +9,7 @@ const searchView = document.getElementById('search-view');
 const recommendView = document.getElementById('recommend-view');
 const analysisView = document.getElementById('analysis-view');
 const aiProView = document.getElementById('ai-pro-view');
+const manualCheckView = document.getElementById('manual-check-view');
 const performanceView = document.getElementById('performance-view');
 const statsView = document.getElementById('stats-view');
 const statsRecentView = document.getElementById('stats-recent-view');
@@ -26,6 +27,10 @@ const analysisContainer = document.getElementById('analysis-container');
 const analysisGenerateBtn = document.getElementById('analysis-generate-btn');
 const aiProContainer = document.getElementById('ai-pro-container');
 const aiProGenerateBtn = document.getElementById('ai-pro-generate-btn');
+const manualSelectionGrid = document.getElementById('manual-selection-grid');
+const selectedNumbersDisplay = document.getElementById('selected-numbers-display');
+const manualAnalyzeBtn = document.getElementById('manual-analyze-btn');
+const manualCheckResultContainer = document.getElementById('manual-check-result-container');
 const performanceSelect = document.getElementById('performance-select');
 const performanceButton = document.getElementById('performance-button');
 const performanceResultContainer = document.getElementById('performance-result-container');
@@ -39,6 +44,7 @@ const navSearchBtn = document.getElementById('nav-search');
 const navRecommendBtn = document.getElementById('nav-recommend');
 const navAnalysisBtn = document.getElementById('nav-analysis');
 const navAiProBtn = document.getElementById('nav-ai-pro');
+const navManualCheckBtn = document.getElementById('nav-manual-check');
 const navPerformanceBtn = document.getElementById('nav-performance');
 const navStatsBtn = document.getElementById('nav-stats');
 const navStatsRecentBtn = document.getElementById('nav-stats-recent');
@@ -47,15 +53,16 @@ const navCollisionStatsBtn = document.getElementById('nav-collision-stats');
 
 let allLottoNumbers = [];
 let currentPage = 1;
+let manualSelectedNumbers = [];
 
 // --- View Toggling ---
 function switchView(viewName) {
-  [historyView, searchView, recommendView, analysisView, aiProView, performanceView, statsView, statsRecentView, collisionView, collisionStatsView].forEach(v => { if(v) v.style.display = 'none'; });
-  const viewMap = { history: historyView, search: searchView, recommend: recommendView, analysis: analysisView, 'ai-pro': aiProView, performance: performanceView, stats: statsView, 'stats-recent': statsRecentView, collision: collisionView, 'collision-stats': collisionStatsView };
+  [historyView, searchView, recommendView, analysisView, aiProView, manualCheckView, performanceView, statsView, statsRecentView, collisionView, collisionStatsView].forEach(v => { if(v) v.style.display = 'none'; });
+  const viewMap = { history: historyView, search: searchView, recommend: recommendView, analysis: analysisView, 'ai-pro': aiProView, 'manual-check': manualCheckView, performance: performanceView, stats: statsView, 'stats-recent': statsRecentView, collision: collisionView, 'collision-stats': collisionStatsView };
   if (viewMap[viewName]) viewMap[viewName].style.display = 'block';
 
-  [navHistoryBtn, navSearchBtn, navRecommendBtn, navAnalysisBtn, navAiProBtn, navPerformanceBtn, navStatsBtn, navStatsRecentBtn, navCollisionBtn, navCollisionStatsBtn].forEach(b => { if(b) b.classList.remove('active'); });
-  const btnMap = { history: navHistoryBtn, search: navSearchBtn, recommend: navRecommendBtn, analysis: navAnalysisBtn, 'ai-pro': navAiProBtn, performance: navPerformanceBtn, stats: navStatsBtn, 'stats-recent': navStatsRecentBtn, collision: navCollisionBtn, 'collision-stats': navCollisionStatsBtn };
+  [navHistoryBtn, navSearchBtn, navRecommendBtn, navAnalysisBtn, navAiProBtn, navManualCheckBtn, navPerformanceBtn, navStatsBtn, navStatsRecentBtn, navCollisionBtn, navCollisionStatsBtn].forEach(b => { if(b) b.classList.remove('active'); });
+  const btnMap = { history: navHistoryBtn, search: navSearchBtn, recommend: navRecommendBtn, analysis: navAnalysisBtn, 'ai-pro': navAiProBtn, 'manual-check': navManualCheckBtn, performance: navPerformanceBtn, stats: navStatsBtn, 'stats-recent': navStatsRecentBtn, collision: navCollisionBtn, 'collision-stats': navCollisionStatsBtn };
   if (btnMap[viewName]) btnMap[viewName].classList.add('active');
 
   if (viewName === 'history') renderHistory(currentPage);
@@ -63,6 +70,7 @@ function switchView(viewName) {
   if (viewName === 'stats-recent') renderStatsRecent();
   if (viewName === 'collision') renderCollisions();
   if (viewName === 'collision-stats') renderCollisionHistogram();
+  if (viewName === 'manual-check') renderManualSelection();
 }
 
 if (navHistoryBtn) navHistoryBtn.onclick = () => switchView('history');
@@ -70,6 +78,7 @@ if (navSearchBtn) navSearchBtn.onclick = () => switchView('search');
 if (navRecommendBtn) navRecommendBtn.onclick = () => switchView('recommend');
 if (navAnalysisBtn) navAnalysisBtn.onclick = () => switchView('analysis');
 if (navAiProBtn) navAiProBtn.onclick = () => switchView('ai-pro');
+if (navManualCheckBtn) navManualCheckBtn.onclick = () => switchView('manual-check');
 if (navPerformanceBtn) navPerformanceBtn.onclick = () => switchView('performance');
 if (navStatsBtn) navStatsBtn.onclick = () => switchView('stats');
 if (navStatsRecentBtn) navStatsRecentBtn.onclick = () => switchView('stats-recent');
@@ -231,6 +240,106 @@ function renderAnalysis() {
     analysisContainer.appendChild(resultCard);
 }
 if (analysisGenerateBtn) analysisGenerateBtn.onclick = renderAnalysis;
+
+// --- Manual Check View ---
+function renderManualSelection() {
+    if (manualSelectionGrid.children.length > 0) return; // Prevent double render
+    
+    for (let i = 1; i <= 45; i++) {
+        const btn = document.createElement('button');
+        btn.textContent = i;
+        btn.classList.add('manual-ball-btn');
+        btn.onclick = () => toggleManualNumber(i, btn);
+        manualSelectionGrid.appendChild(btn);
+    }
+}
+
+function toggleManualNumber(num, btn) {
+    if (manualSelectedNumbers.includes(num)) {
+        manualSelectedNumbers = manualSelectedNumbers.filter(n => n !== num);
+        btn.classList.remove('selected');
+    } else {
+        if (manualSelectedNumbers.length >= 6) {
+            alert('최대 6개까지만 선택할 수 있습니다.');
+            return;
+        }
+        manualSelectedNumbers.push(num);
+        btn.classList.add('selected');
+    }
+    updateManualSelectionUI();
+}
+
+function updateManualSelectionUI() {
+    selectedNumbersDisplay.innerHTML = '';
+    if (manualSelectedNumbers.length === 0) {
+        selectedNumbersDisplay.innerHTML = '<span class="placeholder">번호를 선택해주세요 (0/6)</span>';
+        manualAnalyzeBtn.disabled = true;
+        return;
+    }
+    
+    const sorted = [...manualSelectedNumbers].sort((a, b) => a - b);
+    sorted.forEach(n => {
+        const ball = document.createElement('span');
+        ball.textContent = n;
+        ball.className = `mini-ball ${getBallColorClass(n)}`;
+        selectedNumbersDisplay.appendChild(ball);
+    });
+    
+    manualAnalyzeBtn.disabled = manualSelectedNumbers.length !== 6;
+    if (manualSelectedNumbers.length < 6) {
+        const countSpan = document.createElement('span');
+        countSpan.textContent = ` (${manualSelectedNumbers.length}/6)`;
+        countSpan.className = 'selection-count';
+        selectedNumbersDisplay.appendChild(countSpan);
+    }
+}
+
+function handleManualAnalysis() {
+    if (manualSelectedNumbers.length !== 6) return;
+    
+    manualCheckResultContainer.innerHTML = '<p style="text-align:center;">역대 기록과 대조 중...</p>';
+    
+    setTimeout(() => {
+        const myNumbers = [...manualSelectedNumbers].sort((a, b) => a - b);
+        const winStats = { 1: [], 2: [], 3: [], 4: [], 5: [] };
+        let totalWins = 0;
+
+        allLottoNumbers.forEach(round => {
+            const res = checkRank(myNumbers, round);
+            if (res.rank > 0) {
+                winStats[res.rank].push(round);
+                totalWins++;
+            }
+        });
+
+        let html = `<div class="stats-card"><h3>분석 결과: 총 ${totalWins}회 당첨</h3>`;
+        html += '<div class="manual-summary-grid">';
+        [1, 2, 3, 4, 5].forEach(rank => {
+            const count = winStats[rank].length;
+            html += `<div class="summary-item"><span class="rank-label">${rank}등</span> <span class="rank-count">${count}회</span></div>`;
+        });
+        html += '</div></div>';
+
+        if (totalWins > 0) {
+            html += `<h3>상세 당첨 내역 (최근 순)</h3>`;
+            [1, 2, 3, 4, 5].forEach(rank => {
+                if (winStats[rank].length > 0) {
+                    html += `<div class="rank-group"><h4>${rank}등 (${winStats[rank].length}회)</h4><div class="rank-list">`;
+                    winStats[rank].slice(0, 10).forEach(round => {
+                        html += `<div class="rank-round-item">제 ${round.drwNo}회 (${round.drwNoDate})</div>`;
+                    });
+                    if (winStats[rank].length > 10) html += `<div class="rank-round-more">...외 ${winStats[rank].length - 10}건 더 있음</div>`;
+                    html += '</div></div>';
+                }
+            });
+        } else {
+            html += '<p class="info-msg" style="text-align:center;">안타깝게도 역대 5등 이내 당첨 기록이 없습니다.</p>';
+        }
+
+        manualCheckResultContainer.innerHTML = html;
+    }, 100);
+}
+if (manualAnalyzeBtn) manualAnalyzeBtn.onclick = handleManualAnalysis;
 
 // --- Performance View ---
 function handlePerformance() {

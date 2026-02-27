@@ -20,6 +20,7 @@
     <button id="nav-stats-recent">성적 통계(1000+)</button>
     <button id="nav-collision">중복 당첨 분석</button>
     <button id="nav-collision-stats">중복 번호 통계</button>
+    <button id="nav-manual-check">수동 번호 분석</button>
     <button id="nav-recommend">번호 추천</button>
     <button id="nav-analysis">분석 추천</button>
     <button id="nav-ai-pro">AI 고급 추천</button>
@@ -89,6 +90,20 @@
       <p>역대 중복 당첨 사례(5개 이상 일치)에 등장했던<br>번호들의 출현 빈도를 분석합니다.</p>
     </div>
     <div id="collision-stats-container"></div>
+  </section>
+
+  <!-- Manual Check View -->
+  <section id="manual-check-view" class="view-section" style="display: none;">
+    <div class="recommend-header">
+      <h2>수동 번호 과거 분석</h2>
+      <p>6개의 번호를 선택하세요. 과거 모든 회차와 대조합니다.</p>
+      <div id="manual-selection-grid" class="number-selection-grid"></div>
+      <div id="selected-numbers-display" class="selected-display">
+        <span class="placeholder">번호를 선택해주세요 (0/6)</span>
+      </div>
+      <button id="manual-analyze-btn" disabled>과거 성적 분석하기</button>
+    </div>
+    <div id="manual-check-result-container"></div>
   </section>
 
   <!-- Recommend View -->
