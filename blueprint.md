@@ -57,7 +57,7 @@ The application uses Firebase Cloud Functions as a proxy to fetch lottery data f
 ## Future Improvements
 
 -   **Caching in Cloud Function:** Implement caching within the Cloud Function for lottery data to reduce redundant calls to dhlottery.co.kr and improve response times.
--   **Number Analysis:** Add features to analyze the frequency of each number, the sum of numbers for each draw, etc.
--   **Search by Round:** Add a search bar to allow users to jump to a specific round.
--   **User-Specific Numbers:** Allow users to input their own numbers and check if they have ever won.
--   **PWA:** Turn the application into a Progressive Web App (PWA) so that it can be "installed" on a user's device and work offline.
+-   **AI vs Random Comparison:** High-performance simulation that compares 1,000 AI-optimized combinations against 1,000 random ones across all historical draws to evaluate strategy vs luck.
+-   **Photo Analysis:** Extracts lottery numbers from images using OCR and performs historical performance analysis.
+-   **Statistical Analysis:** Visualizes historical performance distribution and number collision patterns.
+-   **Advanced Recommendation:** AI-driven number generation based on hot/cold numbers and statistical constraints.

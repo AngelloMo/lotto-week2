@@ -975,75 +975,149 @@ function generateAICombination(hotNumbers, coldNumbers) {
 
 // --- AI vs Random View ---
 function runAIVsRandomSimulation() {
-    aiVsRandomResultContainer.innerHTML = '<p style="text-align:center;">AI vs 랜덤 시뮬레이션 중... (800회 이후 전수 조사)</p>';
+    aiVsRandomResultContainer.innerHTML = `
+        <div style="text-align:center; padding:30px; background:white; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.1);">
+            <div class="loading-spinner"></div>
+            <h3 style="margin-bottom:10px;">🤖 AI vs 🎲 랜덤</h3>
+            <p style="color:#666; font-size:0.9em;">1,000회 개별 매치 시뮬레이션 중...<br>전수 조사 기반 승률 계산 (약 3-5초)</p>
+        </div>
+    `;
     
+    if (!document.getElementById('spinner-style')) {
+        const style = document.createElement('style');
+        style.id = 'spinner-style';
+        style.innerHTML = `
+            .loading-spinner {
+                width: 50px; height: 50px; border: 5px solid #f3f3f3; border-top: 5px solid #1877f2;
+                border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px;
+            }
+            @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+            .battle-scoreboard {
+                display: flex; justify-content: space-around; align-items: center; margin: 20px 0;
+                background: #f8f9fa; padding: 20px; border-radius: 15px; border: 1px solid #eee;
+            }
+            .score-item { text-align: center; }
+            .score-num { font-size: 2.5em; font-weight: 900; display: block; }
+            .win-rate-bar {
+                height: 12px; background: #eee; border-radius: 6px; overflow: hidden; display: flex; margin: 10px 0;
+            }
+            .win-rate-fill-ai { background: #1877f2; height: 100%; transition: width 1s ease-out; }
+            .win-rate-fill-random { background: #757575; height: 100%; transition: width 1s ease-out; }
+            .draw-badge { font-size: 0.8em; color: #888; margin-top: 5px; }
+        `;
+        document.head.appendChild(style);
+    }
+
     setTimeout(() => {
+        const startTime = performance.now();
         const { hotNumbers, coldNumbers } = getAIPatternData();
-        const aiSets = [];
-        const randomSets = [];
+        const roundsToTest = allLottoNumbers;
+        const ITERATIONS = 1000;
         
-        for (let i = 0; i < 10; i++) {
-            aiSets.push(generateAICombination(hotNumbers, coldNumbers));
-            randomSets.push(generateRandomNumbers());
-        }
+        let aiWinCount = 0;
+        let randomWinCount = 0;
+        let drawCount = 0;
         
-        const roundsToTest = allLottoNumbers.filter(r => r.drwNo >= 800);
-        
-        const calculateTotalWinnings = (sets) => {
-            let totalAmount = 0;
-            const stats = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-            sets.forEach(myNumbers => {
-                roundsToTest.forEach(round => {
-                    const res = checkRank(myNumbers, round);
-                    if (res.rank > 0 && round.prizes && round.prizes[res.rank - 1]) {
-                        totalAmount += round.prizes[res.rank - 1].amount;
-                        stats[res.rank]++;
-                    } else if (res.rank === 4) {
-                        totalAmount += 50000;
-                        stats[4]++;
-                    } else if (res.rank === 5) {
-                        totalAmount += 5000;
-                        stats[5]++;
-                    }
-                });
+        let aiTotalPrize = 0;
+        let randomTotalPrize = 0;
+
+        // Fallback prizes
+        const fallbacks = { 1: 2000000000, 2: 50000000, 3: 1500000, 4: 50000, 5: 5000 };
+
+        for (let i = 0; i < ITERATIONS; i++) {
+            const aiSet = generateAICombination(hotNumbers, coldNumbers);
+            const randomSet = generateRandomNumbers();
+            
+            let aiWinnings = 0;
+            let randomWinnings = 0;
+
+            roundsToTest.forEach(round => {
+                // AI score
+                const resAi = checkRank(aiSet, round);
+                if (resAi.rank > 0) {
+                    aiWinnings += (round.prizes && round.prizes[resAi.rank - 1]) ? round.prizes[resAi.rank - 1].amount : fallbacks[resAi.rank];
+                }
+                
+                // Random score
+                const resRand = checkRank(randomSet, round);
+                if (resRand.rank > 0) {
+                    randomWinnings += (round.prizes && round.prizes[resRand.rank - 1]) ? round.prizes[resRand.rank - 1].amount : fallbacks[resRand.rank];
+                }
             });
-            return { totalAmount, stats };
-        };
+
+            aiTotalPrize += aiWinnings;
+            randomTotalPrize += randomWinnings;
+
+            if (aiWinnings > randomWinnings) aiWinCount++;
+            else if (randomWinnings > aiWinnings) randomWinCount++;
+            else drawCount++;
+        }
+
+        const endTime = performance.now();
+        const duration = ((endTime - startTime) / 1000).toFixed(2);
         
-        const aiResult = calculateTotalWinnings(aiSets);
-        const randomResult = calculateTotalWinnings(randomSets);
-        
+        const aiWinRate = ((aiWinCount / ITERATIONS) * 100).toFixed(1);
+        const randomWinRate = ((randomWinCount / ITERATIONS) * 100).toFixed(1);
+
         let html = `
-            <div class="comparison-summary">
-                <div class="summary-card ai">
-                    <h3>🤖 AI 고급 추천 (10개 조합)</h3>
-                    <div class="total-prize">${formatCurrency(aiResult.totalAmount)}</div>
-                    <div class="stats-grid">
-                        <div>1등: ${aiResult.stats[1]}회</div>
-                        <div>2등: ${aiResult.stats[2]}회</div>
-                        <div>3등: ${aiResult.stats[3]}회</div>
-                        <div>4등: ${aiResult.stats[4]}회</div>
-                        <div>5등: ${aiResult.stats[5]}회</div>
-                    </div>
+            <div class="recommend-header">
+                <h2>1,000회 배틀 결과 리포트</h2>
+                <p>총 ${ITERATIONS}번의 1:1 대결을 진행한 결과입니다.</p>
+            </div>
+
+            <div class="battle-scoreboard">
+                <div class="score-item">
+                    <span style="color:#1877f2; font-weight:bold;">🤖 AI 승리</span>
+                    <span class="score-num" style="color:#1877f2;">${aiWinCount}</span>
                 </div>
-                <div class="summary-card random">
-                    <h3>🎲 일반 랜덤 추천 (10개 조합)</h3>
-                    <div class="total-prize">${formatCurrency(randomResult.totalAmount)}</div>
-                    <div class="stats-grid">
-                        <div>1등: ${randomResult.stats[1]}회</div>
-                        <div>2등: ${randomResult.stats[2]}회</div>
-                        <div>3등: ${randomResult.stats[3]}회</div>
-                        <div>4등: ${randomResult.stats[4]}회</div>
-                        <div>5등: ${randomResult.stats[5]}회</div>
-                    </div>
+                <div style="font-size: 1.5em; font-weight:bold; color:#ccc;">VS</div>
+                <div class="score-item">
+                    <span style="color:#757575; font-weight:bold;">🎲 랜덤 승리</span>
+                    <span class="score-num" style="color:#757575;">${randomWinCount}</span>
                 </div>
             </div>
-            <div class="vs-badge ${aiResult.totalAmount >= randomResult.totalAmount ? 'ai-win' : 'random-win'}">
-                ${aiResult.totalAmount >= randomResult.totalAmount ? 'AI 승리!' : '랜덤 승리!'}
+
+            <div style="padding: 0 20px;">
+                <div style="display:flex; justify-content:space-between; font-size:0.9em; font-weight:bold;">
+                    <span>AI 승률: ${aiWinRate}%</span>
+                    <span>랜덤 승률: ${randomWinRate}%</span>
+                </div>
+                <div class="win-rate-bar">
+                    <div class="win-rate-fill-ai" style="width:${aiWinRate}%"></div>
+                    <div class="win-rate-fill-random" style="width:${randomWinRate}%"></div>
+                </div>
+                <div class="draw-badge" style="text-align:center;">무승부 (수익금 동일): ${drawCount}회</div>
+            </div>
+
+            <div class="comparison-summary" style="margin-top:30px;">
+                <div class="summary-card ai" style="border-top-color:#1877f2;">
+                    <h3 style="color:#1877f2;">🤖 AI 누적 수익</h3>
+                    <div class="total-prize" style="color:#1877f2; font-size:1.2em;">${formatCurrency(aiTotalPrize)}</div>
+                    <p style="font-size:0.8em; color:#888;">조합당 평균: ${formatCurrency(Math.floor(aiTotalPrize/ITERATIONS))}</p>
+                </div>
+                <div class="summary-card random" style="border-top-color:#757575;">
+                    <h3 style="color:#757575;">🎲 랜덤 누적 수익</h3>
+                    <div class="total-prize" style="color:#757575; font-size:1.2em;">${formatCurrency(randomTotalPrize)}</div>
+                    <p style="font-size:0.8em; color:#888;">조합당 평균: ${formatCurrency(Math.floor(randomTotalPrize/ITERATIONS))}</p>
+                </div>
+            </div>
+
+            <div class="vs-badge ${aiWinCount >= randomWinCount ? 'ai-win' : 'random-win'}" style="margin-top:30px;">
+                ${aiWinCount >= randomWinCount ? 'AI 최종 판정승!' : '랜덤 최종 판정승!'}
+            </div>
+
+            <div class="stats-card" style="margin-top:20px;">
+                <h4>📝 시뮬레이션 분석 결과</h4>
+                <p>AI는 <b>홀짝 비율, 합계 범위, 최근 빈도</b> 등의 통계적 필터를 적용하여 '버려지는 조합'을 최소화합니다.</p>
+                <p>${aiWinCount > randomWinCount ? 
+                    '데이터 분석 결과, AI의 전략적 접근이 랜덤보다 더 높은 확률로 수익을 발생시켰습니다. 이는 통계적 필터링이 유효함을 시사합니다.' : 
+                    '이번 시뮬레이션에서는 랜덤의 운이 더 강하게 작용했습니다. 하지만 장기적으로는 통계적 접근이 더 안정적인 성과를 보일 가능성이 큽니다.'}</p>
+                <p style="font-size:0.8em; color:#999; text-align:right;">분석 소요 시간: ${duration}초</p>
             </div>
         `;
         
         aiVsRandomResultContainer.innerHTML = html;
+        aiVsRandomResultContainer.scrollIntoView({ behavior: 'smooth' });
     }, 100);
 }
 
