@@ -127,6 +127,11 @@ function switchView(viewName) {
   if (viewName === 'collision') renderCollisions();
   if (viewName === 'collision-stats') renderCollisionHistogram();
   if (viewName === 'manual-check') renderManualSelection();
+  if (viewName === 'ai-pro') renderAIPro();
+  if (viewName === 'ai-vs-random') {
+    // Optionally trigger something when the view is opened
+    console.log('AI vs Random view opened');
+  }
 }
 
 if (navHistoryBtn) navHistoryBtn.onclick = () => switchView('history');
@@ -142,7 +147,13 @@ if (navStatsBtn) navStatsBtn.onclick = () => switchView('stats');
 if (navStatsRecentBtn) navStatsRecentBtn.onclick = () => switchView('stats-recent');
 if (navCollisionBtn) navCollisionBtn.onclick = () => switchView('collision');
 if (navCollisionStatsBtn) navCollisionStatsBtn.onclick = () => switchView('collision-stats');
-if (navAiVsRandomBtn) navAiVsRandomBtn.onclick = () => switchView('ai-vs-random');
+if (navAiVsRandomBtn) {
+    console.log('Registering click for AI vs Random button');
+    navAiVsRandomBtn.onclick = () => {
+        console.log('AI vs Random button clicked');
+        switchView('ai-vs-random');
+    };
+}
 
 // --- Helper Functions ---
 function getBallColorClass(num) {
