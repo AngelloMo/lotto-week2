@@ -913,11 +913,12 @@ function renderCollisionHistogram() {
 }
 
 // --- AI Analysis Helpers ---
-function getAIPatternData() {
+function getAIPatternData(sourceData = allLottoNumbers) {
     const freq = Array(46).fill(0);
     const recent100Freq = Array(46).fill(0);
     const lastAppearance = Array(46).fill(0);
-    const sortedData = [...allLottoNumbers].sort((a, b) => a.drwNo - b.drwNo);
+    // Sort ascending for correct processing order if needed, but here we just need counts
+    const sortedData = [...sourceData].sort((a, b) => a.drwNo - b.drwNo);
     const totalRounds = sortedData.length;
     
     sortedData.forEach((item, idx) => {
@@ -978,8 +979,13 @@ function runAIVsRandomSimulation() {
     aiVsRandomResultContainer.innerHTML = `
         <div style="text-align:center; padding:30px; background:white; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.1);">
             <div class="loading-spinner"></div>
-            <h3 style="margin-bottom:10px;">🤖 AI vs 🎲 랜덤</h3>
-            <p style="color:#666; font-size:0.9em;">1,000회 개별 매치 시뮬레이션 중...<br>전수 조사 기반 승률 계산 (약 3-5초)</p>
+            <h3 style="margin-bottom:10px;">⚡ 대규모 시뮬레이션 진행 중...</h3>
+            <p style="color:#666; font-size:0.9em;">
+                <b>Step 1:</b> AI 학습 (1~800회 데이터 분석)<br>
+                <b>Step 2:</b> 801~1000회차 매주 10장씩 구매<br>
+                <b>Step 3:</b> 위 과정을 1,000번 반복 (총 400만 게임)<br>
+                <br>약 5-10초 소요됩니다.
+            </p>
         </div>
     `;
     
@@ -1003,116 +1009,135 @@ function runAIVsRandomSimulation() {
             }
             .win-rate-fill-ai { background: #1877f2; height: 100%; transition: width 1s ease-out; }
             .win-rate-fill-random { background: #757575; height: 100%; transition: width 1s ease-out; }
-            .draw-badge { font-size: 0.8em; color: #888; margin-top: 5px; }
         `;
         document.head.appendChild(style);
     }
 
     setTimeout(() => {
         const startTime = performance.now();
-        const { hotNumbers, coldNumbers } = getAIPatternData();
-        const roundsToTest = allLottoNumbers;
-        const ITERATIONS = 1000;
+
+        // 1. Prepare Data
+        const trainingData = allLottoNumbers.filter(r => r.drwNo <= 800);
+        const testRounds = allLottoNumbers.filter(r => r.drwNo >= 801 && r.drwNo <= 1000);
         
-        let aiWinCount = 0;
-        let randomWinCount = 0;
+        // 2. Train AI (Get patterns from history up to 800)
+        const { hotNumbers, coldNumbers } = getAIPatternData(trainingData);
+
+        const SIMULATION_REPS = 1000;
+        const TICKETS_PER_ROUND = 10;
+        const COST_PER_TICKET = 1000;
+
+        let aiTotalRevenue = 0;
+        let randomTotalRevenue = 0;
+        let aiWinCount = 0; // How many 'seasons' AI won
+        let randomWinCount = 0; // How many 'seasons' Random won
         let drawCount = 0;
-        
-        let aiTotalPrize = 0;
-        let randomTotalPrize = 0;
 
         // Fallback prizes
         const fallbacks = { 1: 2000000000, 2: 50000000, 3: 1500000, 4: 50000, 5: 5000 };
 
-        for (let i = 0; i < ITERATIONS; i++) {
-            const aiSet = generateAICombination(hotNumbers, coldNumbers);
-            const randomSet = generateRandomNumbers();
-            
-            let aiWinnings = 0;
-            let randomWinnings = 0;
+        // Helper to calculate prize for a single ticket against a specific round
+        const getPrize = (ticket, round) => {
+            const res = checkRank(ticket, round);
+            if (res.rank > 0) {
+                return (round.prizes && round.prizes[res.rank - 1]) ? round.prizes[res.rank - 1].amount : fallbacks[res.rank];
+            }
+            return 0;
+        };
 
-            roundsToTest.forEach(round => {
-                // AI score
-                const resAi = checkRank(aiSet, round);
-                if (resAi.rank > 0) {
-                    aiWinnings += (round.prizes && round.prizes[resAi.rank - 1]) ? round.prizes[resAi.rank - 1].amount : fallbacks[resAi.rank];
+        // 3. Run Simulation
+        for (let rep = 0; rep < SIMULATION_REPS; rep++) {
+            let aiSeasonRevenue = 0;
+            let randomSeasonRevenue = 0;
+
+            testRounds.forEach(round => {
+                // Buy AI Tickets
+                for(let t=0; t<TICKETS_PER_ROUND; t++) {
+                    const ticket = generateAICombination(hotNumbers, coldNumbers);
+                    aiSeasonRevenue += getPrize(ticket, round);
                 }
-                
-                // Random score
-                const resRand = checkRank(randomSet, round);
-                if (resRand.rank > 0) {
-                    randomWinnings += (round.prizes && round.prizes[resRand.rank - 1]) ? round.prizes[resRand.rank - 1].amount : fallbacks[resRand.rank];
+                // Buy Random Tickets
+                for(let t=0; t<TICKETS_PER_ROUND; t++) {
+                    const ticket = generateRandomNumbers();
+                    randomSeasonRevenue += getPrize(ticket, round);
                 }
             });
 
-            aiTotalPrize += aiWinnings;
-            randomTotalPrize += randomWinnings;
+            aiTotalRevenue += aiSeasonRevenue;
+            randomTotalRevenue += randomSeasonRevenue;
 
-            if (aiWinnings > randomWinnings) aiWinCount++;
-            else if (randomWinnings > aiWinnings) randomWinCount++;
+            if (aiSeasonRevenue > randomSeasonRevenue) aiWinCount++;
+            else if (randomSeasonRevenue > aiSeasonRevenue) randomWinCount++;
             else drawCount++;
         }
 
         const endTime = performance.now();
         const duration = ((endTime - startTime) / 1000).toFixed(2);
         
-        const aiWinRate = ((aiWinCount / ITERATIONS) * 100).toFixed(1);
-        const randomWinRate = ((randomWinCount / ITERATIONS) * 100).toFixed(1);
+        const aiWinRate = ((aiWinCount / SIMULATION_REPS) * 100).toFixed(1);
+        const randomWinRate = ((randomWinCount / SIMULATION_REPS) * 100).toFixed(1);
+        
+        // Calculate average revenue per season (200 rounds * 10 tickets = 2000 tickets)
+        const totalInvestmentPerSeason = testRounds.length * TICKETS_PER_ROUND * COST_PER_TICKET;
+        const aiAvgRevenue = Math.floor(aiTotalRevenue / SIMULATION_REPS);
+        const randomAvgRevenue = Math.floor(randomTotalRevenue / SIMULATION_REPS);
+        const aiRoi = ((aiAvgRevenue - totalInvestmentPerSeason) / totalInvestmentPerSeason * 100).toFixed(2);
+        const randomRoi = ((randomAvgRevenue - totalInvestmentPerSeason) / totalInvestmentPerSeason * 100).toFixed(2);
 
         let html = `
             <div class="recommend-header">
-                <h2>1,000회 배틀 결과 리포트</h2>
-                <p>총 ${ITERATIONS}번의 1:1 대결을 진행한 결과입니다.</p>
+                <h2>📊 801~1000회차 시뮬레이션 결과</h2>
+                <p>총 400만 게임 (1,000회 반복 x 200주 x 20게임) 분석 완료</p>
             </div>
 
             <div class="battle-scoreboard">
                 <div class="score-item">
-                    <span style="color:#1877f2; font-weight:bold;">🤖 AI 승리</span>
-                    <span class="score-num" style="color:#1877f2;">${aiWinCount}</span>
+                    <span style="color:#1877f2; font-weight:bold;">🤖 AI 승리 횟수</span>
+                    <span class="score-num" style="color:#1877f2;">${aiWinCount}회</span>
+                    <span style="font-size:0.8em; color:#666;">승률 ${aiWinRate}%</span>
                 </div>
                 <div style="font-size: 1.5em; font-weight:bold; color:#ccc;">VS</div>
                 <div class="score-item">
-                    <span style="color:#757575; font-weight:bold;">🎲 랜덤 승리</span>
-                    <span class="score-num" style="color:#757575;">${randomWinCount}</span>
+                    <span style="color:#757575; font-weight:bold;">🎲 랜덤 승리 횟수</span>
+                    <span class="score-num" style="color:#757575;">${randomWinCount}회</span>
+                    <span style="font-size:0.8em; color:#666;">승률 ${randomWinRate}%</span>
                 </div>
             </div>
 
-            <div style="padding: 0 20px;">
-                <div style="display:flex; justify-content:space-between; font-size:0.9em; font-weight:bold;">
-                    <span>AI 승률: ${aiWinRate}%</span>
-                    <span>랜덤 승률: ${randomWinRate}%</span>
-                </div>
+            <div style="padding: 0 20px 20px;">
                 <div class="win-rate-bar">
                     <div class="win-rate-fill-ai" style="width:${aiWinRate}%"></div>
                     <div class="win-rate-fill-random" style="width:${randomWinRate}%"></div>
                 </div>
-                <div class="draw-badge" style="text-align:center;">무승부 (수익금 동일): ${drawCount}회</div>
+                <div style="text-align:center; font-size:0.8em; color:#888; margin-top:5px;">무승부: ${drawCount}회</div>
             </div>
 
-            <div class="comparison-summary" style="margin-top:30px;">
+            <div class="comparison-summary">
                 <div class="summary-card ai" style="border-top-color:#1877f2;">
-                    <h3 style="color:#1877f2;">🤖 AI 누적 수익</h3>
-                    <div class="total-prize" style="color:#1877f2; font-size:1.2em;">${formatCurrency(aiTotalPrize)}</div>
-                    <p style="font-size:0.8em; color:#888;">조합당 평균: ${formatCurrency(Math.floor(aiTotalPrize/ITERATIONS))}</p>
+                    <h3 style="color:#1877f2;">🤖 AI 평균 수익 (200주)</h3>
+                    <div class="total-prize" style="color:#1877f2; font-size:1.3em;">${formatCurrency(aiAvgRevenue)}</div>
+                    <p style="font-size:0.9em;">투자금: ${formatCurrency(totalInvestmentPerSeason)}</p>
+                    <p style="font-size:0.9em; font-weight:bold; color:${aiRoi >= 0 ? '#d32f2f' : '#1877f2'};">수익률: ${aiRoi}%</p>
                 </div>
                 <div class="summary-card random" style="border-top-color:#757575;">
-                    <h3 style="color:#757575;">🎲 랜덤 누적 수익</h3>
-                    <div class="total-prize" style="color:#757575; font-size:1.2em;">${formatCurrency(randomTotalPrize)}</div>
-                    <p style="font-size:0.8em; color:#888;">조합당 평균: ${formatCurrency(Math.floor(randomTotalPrize/ITERATIONS))}</p>
+                    <h3 style="color:#757575;">🎲 랜덤 평균 수익 (200주)</h3>
+                    <div class="total-prize" style="color:#757575; font-size:1.3em;">${formatCurrency(randomAvgRevenue)}</div>
+                    <p style="font-size:0.9em;">투자금: ${formatCurrency(totalInvestmentPerSeason)}</p>
+                    <p style="font-size:0.9em; font-weight:bold; color:${randomRoi >= 0 ? '#d32f2f' : '#1877f2'};">수익률: ${randomRoi}%</p>
                 </div>
             </div>
 
             <div class="vs-badge ${aiWinCount >= randomWinCount ? 'ai-win' : 'random-win'}" style="margin-top:30px;">
-                ${aiWinCount >= randomWinCount ? 'AI 최종 판정승!' : '랜덤 최종 판정승!'}
+                ${aiWinCount >= randomWinCount ? 'AI 전략 승리!' : '랜덤 운 승리!'}
             </div>
 
             <div class="stats-card" style="margin-top:20px;">
-                <h4>📝 시뮬레이션 분석 결과</h4>
-                <p>AI는 <b>홀짝 비율, 합계 범위, 최근 빈도</b> 등의 통계적 필터를 적용하여 '버려지는 조합'을 최소화합니다.</p>
+                <h4>💡 분석 인사이트</h4>
+                <p>이번 시뮬레이션은 <b>과거 데이터(1~800회)</b>만을 학습한 AI가 <b>미래(801~1000회)</b>를 예측하는 블라인드 테스트 방식입니다.</p>
                 <p>${aiWinCount > randomWinCount ? 
-                    '데이터 분석 결과, AI의 전략적 접근이 랜덤보다 더 높은 확률로 수익을 발생시켰습니다. 이는 통계적 필터링이 유효함을 시사합니다.' : 
-                    '이번 시뮬레이션에서는 랜덤의 운이 더 강하게 작용했습니다. 하지만 장기적으로는 통계적 접근이 더 안정적인 성과를 보일 가능성이 큽니다.'}</p>
-                <p style="font-size:0.8em; color:#999; text-align:right;">분석 소요 시간: ${duration}초</p>
+                    'AI가 랜덤보다 높은 승률을 기록했습니다. 이는 "핫/콜드 번호" 및 "합계 구간" 패턴이 특정 기간 동안 유의미하게 작용했음을 시사합니다.' : 
+                    '랜덤이 더 높은 승률을 기록했습니다. 이는 로또가 독립 시행의 성격이 강하며, 과거 데이터 패턴이 미래 당첨을 보장하지 않음을 보여줍니다.'}</p>
+                <p style="font-size:0.8em; color:#999; text-align:right;">총 소요 시간: ${duration}초</p>
             </div>
         `;
         
