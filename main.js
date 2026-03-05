@@ -17,6 +17,7 @@ const statsView = document.getElementById('stats-view');
 const statsRecentView = document.getElementById('stats-recent-view');
 const collisionView = document.getElementById('collision-view');
 const collisionStatsView = document.getElementById('collision-stats-view');
+const aiVsRandomView = document.getElementById('ai-vs-random-view');
 
 const lottoNumbersContainer = document.getElementById('lotto-numbers-container');
 const paginationContainer = document.getElementById('pagination-container');
@@ -43,6 +44,8 @@ const statsContainer = document.getElementById('stats-container');
 const statsRecentContainer = document.getElementById('stats-recent-container');
 const collisionContainer = document.getElementById('collision-container');
 const collisionStatsContainer = document.getElementById('collision-stats-container');
+const aiVsRandomRunBtn = document.getElementById('ai-vs-random-run-btn');
+const aiVsRandomResultContainer = document.getElementById('ai-vs-random-result-container');
 
 // Photo Analysis Elements
 const photoInput = document.getElementById('photo-input');
@@ -68,6 +71,7 @@ const navStatsBtn = document.getElementById('nav-stats');
 const navStatsRecentBtn = document.getElementById('nav-stats-recent');
 const navCollisionBtn = document.getElementById('nav-collision');
 const navCollisionStatsBtn = document.getElementById('nav-collision-stats');
+const navAiVsRandomBtn = document.getElementById('nav-ai-vs-random');
 
 let allLottoNumbers = [];
 let currentPage = 1;
@@ -75,12 +79,46 @@ let manualSelectedNumbers = [];
 
 // --- View Toggling ---
 function switchView(viewName) {
-  [historyView, searchView, recommendView, analysisView, aiProView, manualCheckView, photoView, simulationView, performanceView, statsView, statsRecentView, collisionView, collisionStatsView].forEach(v => { if(v) v.style.display = 'none'; });
-  const viewMap = { history: historyView, search: searchView, recommend: recommendView, analysis: analysisView, 'ai-pro': aiProView, 'manual-check': manualCheckView, photo: photoView, simulation: simulationView, performance: performanceView, stats: statsView, 'stats-recent': statsRecentView, collision: collisionView, 'collision-stats': collisionStatsView };
+  const views = [historyView, searchView, recommendView, analysisView, aiProView, manualCheckView, photoView, simulationView, performanceView, statsView, statsRecentView, collisionView, collisionStatsView, aiVsRandomView];
+  views.forEach(v => { if(v) v.style.display = 'none'; });
+  
+  const viewMap = { 
+    history: historyView, 
+    search: searchView, 
+    recommend: recommendView, 
+    analysis: analysisView, 
+    'ai-pro': aiProView, 
+    'manual-check': manualCheckView, 
+    photo: photoView, 
+    simulation: simulationView, 
+    performance: performanceView, 
+    stats: statsView, 
+    'stats-recent': statsRecentView, 
+    collision: collisionView, 
+    'collision-stats': collisionStatsView, 
+    'ai-vs-random': aiVsRandomView 
+  };
   if (viewMap[viewName]) viewMap[viewName].style.display = 'block';
 
-  [navHistoryBtn, navSearchBtn, navRecommendBtn, navAnalysisBtn, navAiProBtn, navManualCheckBtn, navPhotoBtn, navSimulationBtn, navPerformanceBtn, navStatsBtn, navStatsRecentBtn, navCollisionBtn, navCollisionStatsBtn].forEach(b => { if(b) b.classList.remove('active'); });
-  const btnMap = { history: navHistoryBtn, search: navSearchBtn, recommend: navRecommendBtn, analysis: navAnalysisBtn, 'ai-pro': navAiProBtn, 'manual-check': navManualCheckBtn, photo: navPhotoBtn, simulation: navSimulationBtn, performance: navPerformanceBtn, stats: navStatsBtn, 'stats-recent': navStatsRecentBtn, collision: navCollisionBtn, 'collision-stats': navCollisionStatsBtn };
+  const buttons = [navHistoryBtn, navSearchBtn, navRecommendBtn, navAnalysisBtn, navAiProBtn, navManualCheckBtn, navPhotoBtn, navSimulationBtn, navPerformanceBtn, navStatsBtn, navStatsRecentBtn, navCollisionBtn, navCollisionStatsBtn, navAiVsRandomBtn];
+  buttons.forEach(b => { if(b) b.classList.remove('active'); });
+  
+  const btnMap = { 
+    history: navHistoryBtn, 
+    search: navSearchBtn, 
+    recommend: navRecommendBtn, 
+    analysis: navAnalysisBtn, 
+    'ai-pro': navAiProBtn, 
+    'manual-check': navManualCheckBtn, 
+    photo: navPhotoBtn, 
+    simulation: navSimulationBtn, 
+    performance: navPerformanceBtn, 
+    stats: navStatsBtn, 
+    'stats-recent': navStatsRecentBtn, 
+    collision: navCollisionBtn, 
+    'collision-stats': navCollisionStatsBtn, 
+    'ai-vs-random': navAiVsRandomBtn 
+  };
   if (btnMap[viewName]) btnMap[viewName].classList.add('active');
 
   if (viewName === 'history') renderHistory(currentPage);
@@ -104,6 +142,7 @@ if (navStatsBtn) navStatsBtn.onclick = () => switchView('stats');
 if (navStatsRecentBtn) navStatsRecentBtn.onclick = () => switchView('stats-recent');
 if (navCollisionBtn) navCollisionBtn.onclick = () => switchView('collision');
 if (navCollisionStatsBtn) navCollisionStatsBtn.onclick = () => switchView('collision-stats');
+if (navAiVsRandomBtn) navAiVsRandomBtn.onclick = () => switchView('ai-vs-random');
 
 // --- Helper Functions ---
 function getBallColorClass(num) {
@@ -862,62 +901,152 @@ function renderCollisionHistogram() {
     }, 100);
 }
 
+// --- AI Analysis Helpers ---
+function getAIPatternData() {
+    const freq = Array(46).fill(0);
+    const recent100Freq = Array(46).fill(0);
+    const lastAppearance = Array(46).fill(0);
+    const sortedData = [...allLottoNumbers].sort((a, b) => a.drwNo - b.drwNo);
+    const totalRounds = sortedData.length;
+    
+    sortedData.forEach((item, idx) => {
+        const nums = [item.drwtNo1, item.drwtNo2, item.drwtNo3, item.drwtNo4, item.drwtNo5, item.drwtNo6];
+        nums.forEach(n => {
+            freq[n]++;
+            if (idx >= totalRounds - 100) recent100Freq[n]++;
+            lastAppearance[n] = item.drwNo;
+        });
+    });
+
+    const latestRound = sortedData[totalRounds - 1]?.drwNo || 0;
+    const hotNumbers = [];
+    const coldNumbers = [];
+    const recentSorted = [];
+    for(let i=1; i<=45; i++) recentSorted.push({num: i, count: recent100Freq[i]});
+    recentSorted.sort((a, b) => b.count - a.count);
+    for(let i=0; i<10; i++) hotNumbers.push(recentSorted[i].num);
+    for(let i=1; i<=45; i++) {
+        if (latestRound - lastAppearance[i] >= 30) coldNumbers.push(i);
+    }
+    
+    return { hotNumbers, coldNumbers };
+}
+
+function generateAICombination(hotNumbers, coldNumbers) {
+    let myNumbers = [];
+    let attempts = 0;
+    const poolNormal = [];
+    for(let i=1; i<=45; i++) if(!hotNumbers.includes(i) && !coldNumbers.includes(i)) poolNormal.push(i);
+    
+    const pick = (arr, count) => {
+        const shuffled = [...arr].sort(() => 0.5 - Math.random());
+        return shuffled.slice(0, count);
+    };
+
+    while(attempts < 1000) {
+        attempts++;
+        const selected = [
+            ...pick(hotNumbers, 2),
+            ...pick(coldNumbers, 1),
+            ...pick(poolNormal, 3)
+        ];
+        if (new Set(selected).size !== 6) continue;
+        selected.sort((a, b) => a - b);
+        const sum = selected.reduce((a, b) => a + b, 0);
+        const odds = selected.filter(n => n % 2 !== 0).length;
+        if (sum >= 100 && sum <= 175 && odds >= 2 && odds <= 4) {
+            myNumbers = selected;
+            break;
+        }
+    }
+    return myNumbers.length === 6 ? myNumbers : generateRandomNumbers();
+}
+
+// --- AI vs Random View ---
+function runAIVsRandomSimulation() {
+    aiVsRandomResultContainer.innerHTML = '<p style="text-align:center;">AI vs 랜덤 시뮬레이션 중... (800회 이후 전수 조사)</p>';
+    
+    setTimeout(() => {
+        const { hotNumbers, coldNumbers } = getAIPatternData();
+        const aiSets = [];
+        const randomSets = [];
+        
+        for (let i = 0; i < 10; i++) {
+            aiSets.push(generateAICombination(hotNumbers, coldNumbers));
+            randomSets.push(generateRandomNumbers());
+        }
+        
+        const roundsToTest = allLottoNumbers.filter(r => r.drwNo >= 800);
+        
+        const calculateTotalWinnings = (sets) => {
+            let totalAmount = 0;
+            const stats = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+            sets.forEach(myNumbers => {
+                roundsToTest.forEach(round => {
+                    const res = checkRank(myNumbers, round);
+                    if (res.rank > 0 && round.prizes && round.prizes[res.rank - 1]) {
+                        totalAmount += round.prizes[res.rank - 1].amount;
+                        stats[res.rank]++;
+                    } else if (res.rank === 4) {
+                        totalAmount += 50000;
+                        stats[4]++;
+                    } else if (res.rank === 5) {
+                        totalAmount += 5000;
+                        stats[5]++;
+                    }
+                });
+            });
+            return { totalAmount, stats };
+        };
+        
+        const aiResult = calculateTotalWinnings(aiSets);
+        const randomResult = calculateTotalWinnings(randomSets);
+        
+        let html = `
+            <div class="comparison-summary">
+                <div class="summary-card ai">
+                    <h3>🤖 AI 고급 추천 (10개 조합)</h3>
+                    <div class="total-prize">${formatCurrency(aiResult.totalAmount)}</div>
+                    <div class="stats-grid">
+                        <div>1등: ${aiResult.stats[1]}회</div>
+                        <div>2등: ${aiResult.stats[2]}회</div>
+                        <div>3등: ${aiResult.stats[3]}회</div>
+                        <div>4등: ${aiResult.stats[4]}회</div>
+                        <div>5등: ${aiResult.stats[5]}회</div>
+                    </div>
+                </div>
+                <div class="summary-card random">
+                    <h3>🎲 일반 랜덤 추천 (10개 조합)</h3>
+                    <div class="total-prize">${formatCurrency(randomResult.totalAmount)}</div>
+                    <div class="stats-grid">
+                        <div>1등: ${randomResult.stats[1]}회</div>
+                        <div>2등: ${randomResult.stats[2]}회</div>
+                        <div>3등: ${randomResult.stats[3]}회</div>
+                        <div>4등: ${randomResult.stats[4]}회</div>
+                        <div>5등: ${randomResult.stats[5]}회</div>
+                    </div>
+                </div>
+            </div>
+            <div class="vs-badge ${aiResult.totalAmount >= randomResult.totalAmount ? 'ai-win' : 'random-win'}">
+                ${aiResult.totalAmount >= randomResult.totalAmount ? 'AI 승리!' : '랜덤 승리!'}
+            </div>
+        `;
+        
+        aiVsRandomResultContainer.innerHTML = html;
+    }, 100);
+}
+
+if (aiVsRandomRunBtn) aiVsRandomRunBtn.onclick = runAIVsRandomSimulation;
+
 // --- AI Pro View ---
 function renderAIPro() {
     if (!allLottoNumbers || allLottoNumbers.length === 0) return;
     aiProContainer.innerHTML = '<p style="text-align:center;">AI 패턴 분석 중...</p>';
     setTimeout(() => {
-        const freq = Array(46).fill(0);
-        const recent100Freq = Array(46).fill(0);
-        const lastAppearance = Array(46).fill(0);
-        const sortedData = [...allLottoNumbers].sort((a, b) => a.drwNo - b.drwNo);
-        const totalRounds = sortedData.length;
-        sortedData.forEach((item, idx) => {
-            const nums = [item.drwtNo1, item.drwtNo2, item.drwtNo3, item.drwtNo4, item.drwtNo5, item.drwtNo6];
-            nums.forEach(n => {
-                freq[n]++;
-                if (idx >= totalRounds - 100) recent100Freq[n]++;
-                lastAppearance[n] = item.drwNo;
-            });
-        });
-        const latestRound = sortedData[totalRounds - 1].drwNo;
-        const hotNumbers = [];
-        const coldNumbers = [];
-        const recentSorted = [];
-        for(let i=1; i<=45; i++) recentSorted.push({num: i, count: recent100Freq[i]});
-        recentSorted.sort((a, b) => b.count - a.count);
-        for(let i=0; i<10; i++) hotNumbers.push(recentSorted[i].num);
-        for(let i=1; i<=45; i++) {
-            if (latestRound - lastAppearance[i] >= 30) coldNumbers.push(i);
-        }
+        const { hotNumbers, coldNumbers } = getAIPatternData();
         aiProContainer.innerHTML = '';
         for (let c = 1; c <= 5; c++) {
-            let myNumbers = [];
-            let attempts = 0;
-            while(attempts < 1000) {
-                attempts++;
-                const candidate = [];
-                const poolNormal = [];
-                for(let i=1; i<=45; i++) if(!hotNumbers.includes(i) && !coldNumbers.includes(i)) poolNormal.push(i);
-                const pick = (arr, count) => {
-                    const shuffled = [...arr].sort(() => 0.5 - Math.random());
-                    return shuffled.slice(0, count);
-                };
-                const selected = [
-                    ...pick(hotNumbers, 2),
-                    ...pick(coldNumbers, 1),
-                    ...pick(poolNormal, 3)
-                ];
-                if (new Set(selected).size !== 6) continue;
-                selected.sort((a, b) => a - b);
-                const sum = selected.reduce((a, b) => a + b, 0);
-                const odds = selected.filter(n => n % 2 !== 0).length;
-                if (sum >= 100 && sum <= 175 && odds >= 2 && odds <= 4) {
-                    myNumbers = selected;
-                    break;
-                }
-            }
-            if (myNumbers.length === 0) myNumbers = generateRandomNumbers();
+            const myNumbers = generateAICombination(hotNumbers, coldNumbers);
             const card = document.createElement('div');
             card.classList.add('recommend-card');
             card.style.borderLeft = '4px solid #4a90e2';
@@ -971,5 +1100,4 @@ async function loadLottoData() {
     loadingIndicator.innerHTML = `<p class="error">데이터 로드 실패</p>`;
   }
 }
-
 loadLottoData();
