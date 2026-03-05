@@ -1033,17 +1033,12 @@ function runAIVsRandomSimulation() {
         let randomWinCount = 0; // How many 'seasons' Random won
         let drawCount = 0;
 
+        // Rank counters
+        const aiRankStats = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+        const randomRankStats = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+
         // Fallback prizes
         const fallbacks = { 1: 2000000000, 2: 50000000, 3: 1500000, 4: 50000, 5: 5000 };
-
-        // Helper to calculate prize for a single ticket against a specific round
-        const getPrize = (ticket, round) => {
-            const res = checkRank(ticket, round);
-            if (res.rank > 0) {
-                return (round.prizes && round.prizes[res.rank - 1]) ? round.prizes[res.rank - 1].amount : fallbacks[res.rank];
-            }
-            return 0;
-        };
 
         // 3. Run Simulation
         for (let rep = 0; rep < SIMULATION_REPS; rep++) {
@@ -1054,12 +1049,20 @@ function runAIVsRandomSimulation() {
                 // Buy AI Tickets
                 for(let t=0; t<TICKETS_PER_ROUND; t++) {
                     const ticket = generateAICombination(hotNumbers, coldNumbers);
-                    aiSeasonRevenue += getPrize(ticket, round);
+                    const res = checkRank(ticket, round);
+                    if (res.rank > 0) {
+                        aiRankStats[res.rank]++;
+                        aiSeasonRevenue += (round.prizes && round.prizes[res.rank - 1]) ? round.prizes[res.rank - 1].amount : fallbacks[res.rank];
+                    }
                 }
                 // Buy Random Tickets
                 for(let t=0; t<TICKETS_PER_ROUND; t++) {
                     const ticket = generateRandomNumbers();
-                    randomSeasonRevenue += getPrize(ticket, round);
+                    const res = checkRank(ticket, round);
+                    if (res.rank > 0) {
+                        randomRankStats[res.rank]++;
+                        randomSeasonRevenue += (round.prizes && round.prizes[res.rank - 1]) ? round.prizes[res.rank - 1].amount : fallbacks[res.rank];
+                    }
                 }
             });
 
@@ -1083,6 +1086,18 @@ function runAIVsRandomSimulation() {
         const randomAvgRevenue = Math.floor(randomTotalRevenue / SIMULATION_REPS);
         const aiRoi = ((aiAvgRevenue - totalInvestmentPerSeason) / totalInvestmentPerSeason * 100).toFixed(2);
         const randomRoi = ((randomAvgRevenue - totalInvestmentPerSeason) / totalInvestmentPerSeason * 100).toFixed(2);
+
+        const formatRank = (stats) => {
+            return `
+                <div class="stats-grid" style="margin-top:10px; border-top:1px solid #eee; padding-top:10px;">
+                    <div>1등: <b>${stats[1]}</b></div>
+                    <div>2등: <b>${stats[2]}</b></div>
+                    <div>3등: <b>${stats[3]}</b></div>
+                    <div>4등: <b>${stats[4]}</b></div>
+                    <div>5등: <b>${stats[5]}</b></div>
+                </div>
+            `;
+        };
 
         let html = `
             <div class="recommend-header">
@@ -1114,16 +1129,18 @@ function runAIVsRandomSimulation() {
 
             <div class="comparison-summary">
                 <div class="summary-card ai" style="border-top-color:#1877f2;">
-                    <h3 style="color:#1877f2;">🤖 AI 평균 수익 (200주)</h3>
-                    <div class="total-prize" style="color:#1877f2; font-size:1.3em;">${formatCurrency(aiAvgRevenue)}</div>
-                    <p style="font-size:0.9em;">투자금: ${formatCurrency(totalInvestmentPerSeason)}</p>
+                    <h3 style="color:#1877f2;">🤖 AI 총 평점</h3>
+                    <div class="total-prize" style="color:#1877f2; font-size:1.3em;">평균 ${formatCurrency(aiAvgRevenue)}</div>
+                    <p style="font-size:0.8em; color:#666;">누적 당첨금: ${formatCurrency(aiTotalRevenue)}</p>
                     <p style="font-size:0.9em; font-weight:bold; color:${aiRoi >= 0 ? '#d32f2f' : '#1877f2'};">수익률: ${aiRoi}%</p>
+                    ${formatRank(aiRankStats)}
                 </div>
                 <div class="summary-card random" style="border-top-color:#757575;">
-                    <h3 style="color:#757575;">🎲 랜덤 평균 수익 (200주)</h3>
-                    <div class="total-prize" style="color:#757575; font-size:1.3em;">${formatCurrency(randomAvgRevenue)}</div>
-                    <p style="font-size:0.9em;">투자금: ${formatCurrency(totalInvestmentPerSeason)}</p>
+                    <h3 style="color:#757575;">🎲 랜덤 총 평점</h3>
+                    <div class="total-prize" style="color:#757575; font-size:1.3em;">평균 ${formatCurrency(randomAvgRevenue)}</div>
+                    <p style="font-size:0.8em; color:#666;">누적 당첨금: ${formatCurrency(randomTotalRevenue)}</p>
                     <p style="font-size:0.9em; font-weight:bold; color:${randomRoi >= 0 ? '#d32f2f' : '#1877f2'};">수익률: ${randomRoi}%</p>
+                    ${formatRank(randomRankStats)}
                 </div>
             </div>
 
