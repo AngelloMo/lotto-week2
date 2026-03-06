@@ -49,6 +49,10 @@ const aiVsRandomResultContainer = document.getElementById('ai-vs-random-result-c
 const recentComparisonView = document.getElementById('recent-comparison-view');
 const recentComparisonRunBtn = document.getElementById('recent-comparison-run-btn');
 const recentComparisonResultContainer = document.getElementById('recent-comparison-result-container');
+const aboutView = document.getElementById('about-view');
+const privacyView = document.getElementById('privacy-view');
+const contactView = document.getElementById('contact-view');
+const disclaimerView = document.getElementById('disclaimer-view');
 
 // Photo Analysis Elements
 const photoInput = document.getElementById('photo-input');
@@ -83,7 +87,13 @@ let manualSelectedNumbers = [];
 
 // --- View Toggling ---
 function switchView(viewName) {
-  const views = [historyView, searchView, recommendView, analysisView, aiProView, manualCheckView, photoView, simulationView, performanceView, statsView, statsRecentView, collisionView, collisionStatsView, aiVsRandomView, recentComparisonView];
+  const views = [
+    historyView, searchView, recommendView, analysisView, aiProView, 
+    manualCheckView, photoView, simulationView, performanceView, 
+    statsView, statsRecentView, collisionView, collisionStatsView, 
+    aiVsRandomView, recentComparisonView,
+    aboutView, privacyView, contactView, disclaimerView
+  ];
   views.forEach(v => { if(v) v.style.display = 'none'; });
   
   const viewMap = { 
@@ -101,9 +111,16 @@ function switchView(viewName) {
     collision: collisionView, 
     'collision-stats': collisionStatsView, 
     'ai-vs-random': aiVsRandomView,
-    'recent-comparison': recentComparisonView
+    'recent-comparison': recentComparisonView,
+    about: aboutView,
+    privacy: privacyView,
+    contact: contactView,
+    disclaimer: disclaimerView
   };
-  if (viewMap[viewName]) viewMap[viewName].style.display = 'block';
+  if (viewMap[viewName]) {
+    viewMap[viewName].style.display = 'block';
+    window.scrollTo(0, 0);
+  }
 
   const buttons = [navHistoryBtn, navSearchBtn, navRecommendBtn, navAnalysisBtn, navAiProBtn, navManualCheckBtn, navPhotoBtn, navSimulationBtn, navPerformanceBtn, navStatsBtn, navStatsRecentBtn, navCollisionBtn, navCollisionStatsBtn, navAiVsRandomBtn, navRecentComparisonBtn];
   buttons.forEach(b => { if(b) b.classList.remove('active'); });
@@ -134,10 +151,6 @@ function switchView(viewName) {
   if (viewName === 'collision-stats') renderCollisionHistogram();
   if (viewName === 'manual-check') renderManualSelection();
   if (viewName === 'ai-pro') renderAIPro();
-  if (viewName === 'ai-vs-random') {
-    // Optionally trigger something when the view is opened
-    console.log('AI vs Random view opened');
-  }
 }
 
 if (navHistoryBtn) navHistoryBtn.onclick = () => switchView('history');

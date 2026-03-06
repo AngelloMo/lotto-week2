@@ -810,3 +810,33 @@ h1 {
   70% { transform: scale(1.05); box-shadow: 0 0 0 15px rgba(74, 144, 226, 0); }
   100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(74, 144, 226, 0); }
 }
+
+/* Footer Styles for AdSense Compliance */
+.site-footer {
+  margin-top: 50px;
+  padding: 30px 10px;
+  background-color: #fff;
+  border-top: 1px solid #eee;
+  text-align: center;
+  color: #888;
+  font-size: 0.85em;
+}
+
+.footer-links {
+  margin-bottom: 15px;
+}
+
+.footer-links a {
+  color: #1877f2;
+  text-decoration: none;
+  margin: 0 10px;
+  font-weight: bold;
+}
+
+.footer-links a:hover {
+  text-decoration: underline;
+}
+
+.site-footer p {
+  margin: 5px 0;
+}
