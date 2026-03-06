@@ -1265,22 +1265,35 @@ function runRecentComparisonSimulation() {
             let randomRoundPrize = 0;
             let aiRoundWins = 0;
             let randomRoundWins = 0;
+            
+            const aiSamples = [];
+            const randomSamples = [];
 
             for (let i = 0; i < TICKETS_PER_ROUND; i++) {
                 // AI
                 const aiTicket = generateAICombination(hotNumbers, coldNumbers);
                 const aiRes = checkRank(aiTicket, round);
+                const aiTicketData = { numbers: aiTicket, rank: aiRes.rank, matched: aiRes.matchedNumbers };
+                
                 if (aiRes.rank > 0) {
                     aiRoundWins++;
                     aiRoundPrize += (round.prizes && round.prizes[aiRes.rank - 1]) ? round.prizes[aiRes.rank - 1].amount : fallbacks[aiRes.rank];
+                    aiSamples.unshift(aiTicketData); // Priority to winners
+                } else if (aiSamples.length < 5) {
+                    aiSamples.push(aiTicketData);
                 }
 
                 // Random
                 const randomTicket = generateRandomNumbers();
                 const randomRes = checkRank(randomTicket, round);
+                const randomTicketData = { numbers: randomTicket, rank: randomRes.rank, matched: randomRes.matchedNumbers };
+                
                 if (randomRes.rank > 0) {
                     randomRoundWins++;
                     randomRoundPrize += (round.prizes && round.prizes[randomRes.rank - 1]) ? round.prizes[randomRes.rank - 1].amount : fallbacks[randomRes.rank];
+                    randomSamples.unshift(randomTicketData); // Priority to winners
+                } else if (randomSamples.length < 5) {
+                    randomSamples.push(randomTicketData);
                 }
             }
 
@@ -1294,8 +1307,10 @@ function runRecentComparisonSimulation() {
                 winNums: [round.drwtNo1, round.drwtNo2, round.drwtNo3, round.drwtNo4, round.drwtNo5, round.drwtNo6, round.bnusNo],
                 aiWins: aiRoundWins,
                 aiPrize: aiRoundPrize,
+                aiSamples: aiSamples.slice(0, 5),
                 randomWins: randomRoundWins,
-                randomPrize: randomRoundPrize
+                randomPrize: randomRoundPrize,
+                randomSamples: randomSamples.slice(0, 5)
             };
         });
 
@@ -1307,20 +1322,38 @@ function runRecentComparisonSimulation() {
         const aiEV = (aiGrandTotalPrize / totalTickets).toFixed(0);
         const randomEV = (randomGrandTotalPrize / totalTickets).toFixed(0);
 
+        const renderSampleTickets = (samples, winNums) => {
+            return `<div class="sample-tickets" style="display:flex; flex-direction:column; gap:5px; margin-top:10px;">` + 
+                samples.map(s => {
+                    const balls = s.numbers.map(n => {
+                        const isMatched = winNums.includes(n);
+                        return `<span class="mini-ball ${getBallColorClass(n)} ${isMatched ? 'matched' : ''}" style="width:18px; height:18px; font-size:10px; line-height:18px;">${n}</span>`;
+                    }).join('');
+                    const rankText = s.rank > 0 ? `<span style="color:#d32f2f; font-size:10px; font-weight:bold; margin-left:5px;">${s.rank}등</span>` : '';
+                    return `<div style="display:flex; align-items:center;">${balls}${rankText}</div>`;
+                }).join('') + `</div>`;
+        };
+
         let tableRows = roundResults.reverse().map(res => {
             const winBallsHtml = res.winNums.slice(0,6).map(n => `<span class="mini-ball ${getBallColorClass(n)}">${n}</span>`).join('');
             const bonusBallHtml = `<span class="mini-ball ${getBallColorClass(res.winNums[6])}">${res.winNums[6]}</span>`;
             
             return `
-                <tr>
-                    <td>
+                <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 15px 10px;">
                         <div style="font-weight:bold; margin-bottom:5px;">${res.drwNo}회</div>
                         <div class="numbers" style="transform:scale(0.7); margin-left:-25px; white-space:nowrap;">
                             ${winBallsHtml} <span style="font-size:12px; margin:0 2px;">+</span> ${bonusBallHtml}
                         </div>
                     </td>
-                    <td style="color:#1877f2; font-weight:bold; vertical-align:middle;">${res.aiWins}건 / ${formatCurrency(res.aiPrize)}</td>
-                    <td style="color:#757575; vertical-align:middle;">${res.randomWins}건 / ${formatCurrency(res.randomPrize)}</td>
+                    <td style="padding: 15px 10px; vertical-align:top;">
+                        <div style="color:#1877f2; font-weight:bold;">${res.aiWins}건 / ${formatCurrency(res.aiPrize)}</div>
+                        ${renderSampleTickets(res.aiSamples, res.winNums)}
+                    </td>
+                    <td style="padding: 15px 10px; vertical-align:top;">
+                        <div style="color:#757575;">${res.randomWins}건 / ${formatCurrency(res.randomPrize)}</div>
+                        ${renderSampleTickets(res.randomSamples, res.winNums)}
+                    </td>
                 </tr>
             `;
         }).join('');
