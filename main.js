@@ -1291,6 +1291,7 @@ function runRecentComparisonSimulation() {
 
             return {
                 drwNo: round.drwNo,
+                winNums: [round.drwtNo1, round.drwtNo2, round.drwtNo3, round.drwtNo4, round.drwtNo5, round.drwtNo6, round.bnusNo],
                 aiWins: aiRoundWins,
                 aiPrize: aiRoundPrize,
                 randomWins: randomRoundWins,
@@ -1306,13 +1307,23 @@ function runRecentComparisonSimulation() {
         const aiEV = (aiGrandTotalPrize / totalTickets).toFixed(0);
         const randomEV = (randomGrandTotalPrize / totalTickets).toFixed(0);
 
-        let tableRows = roundResults.reverse().map(res => `
-            <tr>
-                <td>${res.drwNo}회</td>
-                <td style="color:#1877f2; font-weight:bold;">${res.aiWins}건 / ${formatCurrency(res.aiPrize)}</td>
-                <td style="color:#757575;">${res.randomWins}건 / ${formatCurrency(res.randomPrize)}</td>
-            </tr>
-        `).join('');
+        let tableRows = roundResults.reverse().map(res => {
+            const winBallsHtml = res.winNums.slice(0,6).map(n => `<span class="mini-ball ${getBallColorClass(n)}">${n}</span>`).join('');
+            const bonusBallHtml = `<span class="mini-ball ${getBallColorClass(res.winNums[6])}">${res.winNums[6]}</span>`;
+            
+            return `
+                <tr>
+                    <td>
+                        <div style="font-weight:bold; margin-bottom:5px;">${res.drwNo}회</div>
+                        <div class="numbers" style="transform:scale(0.7); margin-left:-25px; white-space:nowrap;">
+                            ${winBallsHtml} <span style="font-size:12px; margin:0 2px;">+</span> ${bonusBallHtml}
+                        </div>
+                    </td>
+                    <td style="color:#1877f2; font-weight:bold; vertical-align:middle;">${res.aiWins}건 / ${formatCurrency(res.aiPrize)}</td>
+                    <td style="color:#757575; vertical-align:middle;">${res.randomWins}건 / ${formatCurrency(res.randomPrize)}</td>
+                </tr>
+            `;
+        }).join('');
 
         const html = `
             <div class="stats-card">
