@@ -718,6 +718,34 @@ h1 {
   .comparison-summary {
     grid-template-columns: 1fr;
   }
+  
+  .battle-scoreboard {
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .battle-scoreboard .score-item {
+    width: 100%;
+  }
+
+  .prize-table {
+    display: block !important;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .prize-table td {
+    min-width: 100px;
+  }
+
+  .prize-table tr td:first-child {
+    width: 80px;
+    min-width: 80px;
+  }
+  
+  .sample-tickets div {
+    flex-wrap: wrap;
+  }
 }
 
 .summary-card {
