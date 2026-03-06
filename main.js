@@ -46,6 +46,9 @@ const collisionContainer = document.getElementById('collision-container');
 const collisionStatsContainer = document.getElementById('collision-stats-container');
 const aiVsRandomRunBtn = document.getElementById('ai-vs-random-run-btn');
 const aiVsRandomResultContainer = document.getElementById('ai-vs-random-result-container');
+const recentComparisonView = document.getElementById('recent-comparison-view');
+const recentComparisonRunBtn = document.getElementById('recent-comparison-run-btn');
+const recentComparisonResultContainer = document.getElementById('recent-comparison-result-container');
 
 // Photo Analysis Elements
 const photoInput = document.getElementById('photo-input');
@@ -72,6 +75,7 @@ const navStatsRecentBtn = document.getElementById('nav-stats-recent');
 const navCollisionBtn = document.getElementById('nav-collision');
 const navCollisionStatsBtn = document.getElementById('nav-collision-stats');
 const navAiVsRandomBtn = document.getElementById('nav-ai-vs-random');
+const navRecentComparisonBtn = document.getElementById('nav-recent-comparison');
 
 let allLottoNumbers = [];
 let currentPage = 1;
@@ -79,7 +83,7 @@ let manualSelectedNumbers = [];
 
 // --- View Toggling ---
 function switchView(viewName) {
-  const views = [historyView, searchView, recommendView, analysisView, aiProView, manualCheckView, photoView, simulationView, performanceView, statsView, statsRecentView, collisionView, collisionStatsView, aiVsRandomView];
+  const views = [historyView, searchView, recommendView, analysisView, aiProView, manualCheckView, photoView, simulationView, performanceView, statsView, statsRecentView, collisionView, collisionStatsView, aiVsRandomView, recentComparisonView];
   views.forEach(v => { if(v) v.style.display = 'none'; });
   
   const viewMap = { 
@@ -96,11 +100,12 @@ function switchView(viewName) {
     'stats-recent': statsRecentView, 
     collision: collisionView, 
     'collision-stats': collisionStatsView, 
-    'ai-vs-random': aiVsRandomView 
+    'ai-vs-random': aiVsRandomView,
+    'recent-comparison': recentComparisonView
   };
   if (viewMap[viewName]) viewMap[viewName].style.display = 'block';
 
-  const buttons = [navHistoryBtn, navSearchBtn, navRecommendBtn, navAnalysisBtn, navAiProBtn, navManualCheckBtn, navPhotoBtn, navSimulationBtn, navPerformanceBtn, navStatsBtn, navStatsRecentBtn, navCollisionBtn, navCollisionStatsBtn, navAiVsRandomBtn];
+  const buttons = [navHistoryBtn, navSearchBtn, navRecommendBtn, navAnalysisBtn, navAiProBtn, navManualCheckBtn, navPhotoBtn, navSimulationBtn, navPerformanceBtn, navStatsBtn, navStatsRecentBtn, navCollisionBtn, navCollisionStatsBtn, navAiVsRandomBtn, navRecentComparisonBtn];
   buttons.forEach(b => { if(b) b.classList.remove('active'); });
   
   const btnMap = { 
@@ -117,7 +122,8 @@ function switchView(viewName) {
     'stats-recent': navStatsRecentBtn, 
     collision: navCollisionBtn, 
     'collision-stats': navCollisionStatsBtn, 
-    'ai-vs-random': navAiVsRandomBtn 
+    'ai-vs-random': navAiVsRandomBtn,
+    'recent-comparison': navRecentComparisonBtn
   };
   if (btnMap[viewName]) btnMap[viewName].classList.add('active');
 
@@ -147,13 +153,8 @@ if (navStatsBtn) navStatsBtn.onclick = () => switchView('stats');
 if (navStatsRecentBtn) navStatsRecentBtn.onclick = () => switchView('stats-recent');
 if (navCollisionBtn) navCollisionBtn.onclick = () => switchView('collision');
 if (navCollisionStatsBtn) navCollisionStatsBtn.onclick = () => switchView('collision-stats');
-if (navAiVsRandomBtn) {
-    console.log('Registering click for AI vs Random button');
-    navAiVsRandomBtn.onclick = () => {
-        console.log('AI vs Random button clicked');
-        switchView('ai-vs-random');
-    };
-}
+if (navAiVsRandomBtn) navAiVsRandomBtn.onclick = () => switchView('ai-vs-random');
+if (navRecentComparisonBtn) navRecentComparisonBtn.onclick = () => switchView('recent-comparison');
 
 // --- Helper Functions ---
 function getBallColorClass(num) {
@@ -1228,3 +1229,138 @@ async function loadLottoData() {
   }
 }
 loadLottoData();
+
+// --- Recent Comparison View ---
+function runRecentComparisonSimulation() {
+    if (!allLottoNumbers || allLottoNumbers.length < 10) {
+        alert('데이터가 충분하지 않습니다.');
+        return;
+    }
+
+    recentComparisonResultContainer.innerHTML = `
+        <div style="text-align:center; padding:30px; background:white; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.1);">
+            <div class="loading-spinner"></div>
+            <h3 style="margin-bottom:10px;">📉 최근 10회차 비교 분석 중...</h3>
+            <p style="color:#666; font-size:0.9em;">각 회차별 AI 10매 vs 랜덤 10매 시뮬레이션 중</p>
+        </div>
+    `;
+
+    setTimeout(() => {
+        const latest10 = [...allLottoNumbers].slice(0, 10).reverse(); // Oldest to newest of the last 10
+        const COST_PER_TICKET = 1000;
+        const TICKETS_PER_ROUND = 10;
+        const fallbacks = { 1: 2000000000, 2: 50000000, 3: 1500000, 4: 50000, 5: 5000 };
+
+        let aiGrandTotalPrize = 0;
+        let randomGrandTotalPrize = 0;
+        let aiGrandTotalWins = 0;
+        let randomGrandTotalWins = 0;
+
+        const roundResults = latest10.map(round => {
+            // Training data for AI is all data BEFORE this round
+            const trainingData = allLottoNumbers.filter(r => r.drwNo < round.drwNo);
+            const { hotNumbers, coldNumbers } = getAIPatternData(trainingData);
+
+            let aiRoundPrize = 0;
+            let randomRoundPrize = 0;
+            let aiRoundWins = 0;
+            let randomRoundWins = 0;
+
+            for (let i = 0; i < TICKETS_PER_ROUND; i++) {
+                // AI
+                const aiTicket = generateAICombination(hotNumbers, coldNumbers);
+                const aiRes = checkRank(aiTicket, round);
+                if (aiRes.rank > 0) {
+                    aiRoundWins++;
+                    aiRoundPrize += (round.prizes && round.prizes[aiRes.rank - 1]) ? round.prizes[aiRes.rank - 1].amount : fallbacks[aiRes.rank];
+                }
+
+                // Random
+                const randomTicket = generateRandomNumbers();
+                const randomRes = checkRank(randomTicket, round);
+                if (randomRes.rank > 0) {
+                    randomRoundWins++;
+                    randomRoundPrize += (round.prizes && round.prizes[randomRes.rank - 1]) ? round.prizes[randomRes.rank - 1].amount : fallbacks[randomRes.rank];
+                }
+            }
+
+            aiGrandTotalPrize += aiRoundPrize;
+            randomGrandTotalPrize += randomRoundPrize;
+            aiGrandTotalWins += aiRoundWins;
+            randomGrandTotalWins += randomRoundWins;
+
+            return {
+                drwNo: round.drwNo,
+                aiWins: aiRoundWins,
+                aiPrize: aiRoundPrize,
+                randomWins: randomRoundWins,
+                randomPrize: randomRoundPrize
+            };
+        });
+
+        const totalTickets = 10 * TICKETS_PER_ROUND;
+        const totalCost = totalTickets * COST_PER_TICKET;
+
+        const aiWinRate = (aiGrandTotalWins / totalTickets * 100).toFixed(1);
+        const randomWinRate = (randomGrandTotalWins / totalTickets * 100).toFixed(1);
+        const aiEV = (aiGrandTotalPrize / totalTickets).toFixed(0);
+        const randomEV = (randomGrandTotalPrize / totalTickets).toFixed(0);
+
+        let tableRows = roundResults.reverse().map(res => `
+            <tr>
+                <td>${res.drwNo}회</td>
+                <td style="color:#1877f2; font-weight:bold;">${res.aiWins}건 / ${formatCurrency(res.aiPrize)}</td>
+                <td style="color:#757575;">${res.randomWins}건 / ${formatCurrency(res.randomPrize)}</td>
+            </tr>
+        `).join('');
+
+        const html = `
+            <div class="stats-card">
+                <h3>최근 10회차 통합 성적 (총 200매)</h3>
+                <div class="battle-scoreboard" style="margin-top:10px;">
+                    <div class="score-item">
+                        <span style="color:#1877f2; font-weight:bold;">🤖 AI 합계</span>
+                        <div style="margin:5px 0;">
+                            <span style="font-size:1.2em; display:block;">승률: ${aiWinRate}%</span>
+                            <span style="font-size:1.2em; display:block; color:#d32f2f;">기대값: ${formatCurrency(aiEV)}</span>
+                        </div>
+                    </div>
+                    <div style="font-size: 1.5em; font-weight:bold; color:#ccc;">VS</div>
+                    <div class="score-item">
+                        <span style="color:#757575; font-weight:bold;">🎲 랜덤 합계</span>
+                        <div style="margin:5px 0;">
+                            <span style="font-size:1.2em; display:block;">승률: ${randomWinRate}%</span>
+                            <span style="font-size:1.2em; display:block; color:#d32f2f;">기대값: ${formatCurrency(randomEV)}</span>
+                        </div>
+                    </div>
+                </div>
+                <p style="font-size:0.8em; color:#888; text-align:center; margin-top:10px;">* 기대값 = 총 당첨금 / 총 구매매수 (1매당 기대 수익)</p>
+            </div>
+
+            <div class="stats-card" style="margin-top:20px;">
+                <h3>회차별 상세 결과</h3>
+                <table class="prize-table">
+                    <thead>
+                        <tr>
+                            <th>회차</th>
+                            <th>🤖 AI (당첨/금액)</th>
+                            <th>🎲 랜덤 (당첨/금액)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${tableRows}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="vs-badge ${aiGrandTotalPrize >= randomGrandTotalPrize ? 'ai-win' : 'random-win'}" style="margin-top:30px;">
+                ${aiGrandTotalPrize >= randomGrandTotalPrize ? 'AI 전략 승리!' : '랜덤 운 승리!'}
+            </div>
+        `;
+
+        recentComparisonResultContainer.innerHTML = html;
+        recentComparisonResultContainer.scrollIntoView({ behavior: 'smooth' });
+    }, 500);
+}
+
+if (recentComparisonRunBtn) recentComparisonRunBtn.onclick = runRecentComparisonSimulation;

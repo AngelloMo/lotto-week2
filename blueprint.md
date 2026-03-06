@@ -60,4 +60,6 @@ The application uses Firebase Cloud Functions as a proxy to fetch lottery data f
 -   **AI vs Random Comparison:** High-performance simulation that compares 1,000 AI-optimized combinations against 1,000 random ones across all historical draws to evaluate strategy vs luck.
 -   **Photo Analysis:** Extracts lottery numbers from images using OCR and performs historical performance analysis.
 -   **Statistical Analysis:** Visualizes historical performance distribution and number collision patterns.
--   **Advanced Recommendation:** AI-driven number generation based on hot/cold numbers and statistical constraints.
+- **Advanced Recommendation:** AI-driven number generation based on hot/cold numbers and statistical constraints.
+- **AI vs Random Recent 10 Comparison:** A specific evaluation tool that compares the performance of AI-generated combinations against random selections for the 10 most recent rounds, simulating 10 tickets each and calculating winning rates and expected values.
+

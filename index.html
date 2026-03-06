@@ -28,6 +28,7 @@
     <button id="nav-analysis">분석 추천</button>
     <button id="nav-ai-pro">AI 고급 추천</button>
     <button id="nav-ai-vs-random">AI vs 랜덤 대규모 비교</button>
+    <button id="nav-recent-comparison">AI vs 랜덤 최근 10회</button>
   </nav>
 
   <div id="loading-indicator">데이터를 불러오는 중...</div>
@@ -193,6 +194,16 @@
       <button id="ai-vs-random-run-btn">시뮬레이션 시작 (총 400만 게임)</button>
     </div>
     <div id="ai-vs-random-result-container"></div>
+  </section>
+
+  <!-- AI vs Random Recent 10 View -->
+  <section id="recent-comparison-view" class="view-section" style="display: none;">
+    <div class="recommend-header">
+      <h2>AI vs 랜덤 최근 10회 비교</h2>
+      <p>최근 10회차에 대해 AI와 랜덤이 각각 10매씩 구매했을 때의<br>승률과 기대값을 비교 분석합니다.</p>
+      <button id="recent-comparison-run-btn">비교 분석 시작</button>
+    </div>
+    <div id="recent-comparison-result-container"></div>
   </section>
 
   <script defer type="text/javascript" src="/main.js"></script>
