@@ -928,29 +928,31 @@ function renderCollisionHistogram() {
 
 // --- AI Analysis Helpers ---
 function getAIPatternData(sourceData = allLottoNumbers) {
-    const freq = Array(46).fill(0);
+    const totalFreq = Array(46).fill(0);
     const recent100Freq = Array(46).fill(0);
     const lastAppearance = Array(46).fill(0);
-    // Sort ascending for correct processing order if needed, but here we just need counts
     const sortedData = [...sourceData].sort((a, b) => a.drwNo - b.drwNo);
     const totalRounds = sortedData.length;
     
     sortedData.forEach((item, idx) => {
         const nums = [item.drwtNo1, item.drwtNo2, item.drwtNo3, item.drwtNo4, item.drwtNo5, item.drwtNo6];
         nums.forEach(n => {
-            freq[n]++;
+            totalFreq[n]++;
             if (idx >= totalRounds - 100) recent100Freq[n]++;
             lastAppearance[n] = item.drwNo;
         });
     });
 
     const latestRound = sortedData[totalRounds - 1]?.drwNo || 0;
+    
+    // AI Strategy: Prioritize high-frequency numbers (Top 15 of all time)
     const hotNumbers = [];
+    const allTimeSorted = [];
+    for(let i=1; i<=45; i++) allTimeSorted.push({num: i, count: totalFreq[i]});
+    allTimeSorted.sort((a, b) => b.count - a.count);
+    for(let i=0; i<15; i++) hotNumbers.push(allTimeSorted[i].num);
+
     const coldNumbers = [];
-    const recentSorted = [];
-    for(let i=1; i<=45; i++) recentSorted.push({num: i, count: recent100Freq[i]});
-    recentSorted.sort((a, b) => b.count - a.count);
-    for(let i=0; i<10; i++) hotNumbers.push(recentSorted[i].num);
     for(let i=1; i<=45; i++) {
         if (latestRound - lastAppearance[i] >= 30) coldNumbers.push(i);
     }
@@ -962,7 +964,7 @@ function generateAICombination(hotNumbers, coldNumbers) {
     let myNumbers = [];
     let attempts = 0;
     const poolNormal = [];
-    for(let i=1; i<=45; i++) if(!hotNumbers.includes(i) && !coldNumbers.includes(i)) poolNormal.push(i);
+    for(let i=1; i<=45; i++) if(!hotNumbers.includes(i)) poolNormal.push(i);
     
     const pick = (arr, count) => {
         const shuffled = [...arr].sort(() => 0.5 - Math.random());
@@ -971,16 +973,19 @@ function generateAICombination(hotNumbers, coldNumbers) {
 
     while(attempts < 1000) {
         attempts++;
+        // New Strategy: Pick 4 from Top 15 Hot numbers, 2 from others
         const selected = [
-            ...pick(hotNumbers, 2),
-            ...pick(coldNumbers, 1),
-            ...pick(poolNormal, 3)
+            ...pick(hotNumbers, 4),
+            ...pick(poolNormal, 2)
         ];
         if (new Set(selected).size !== 6) continue;
         selected.sort((a, b) => a - b);
+        
         const sum = selected.reduce((a, b) => a + b, 0);
         const odds = selected.filter(n => n % 2 !== 0).length;
-        if (sum >= 100 && sum <= 175 && odds >= 2 && odds <= 4) {
+        
+        // Balanced constraints
+        if (sum >= 100 && sum <= 185 && odds >= 2 && odds <= 4) {
             myNumbers = selected;
             break;
         }
